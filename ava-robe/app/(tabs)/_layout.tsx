@@ -1,35 +1,24 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Tabs } from "expo-router";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+	return (
+		<Tabs
+			screenOptions={{
+				headerShown: false,
+				tabBarActiveTintColor: "#B6FF3B",
+				tabBarInactiveTintColor: "#ffffff",
+				tabBarStyle: {
+					backgroundColor: "#0F172A",
+					borderTopColor: "#1E2A5A",
+				},
+			}}
+		>
+			<Tabs.Screen name="index" options={{ title: "Home" }} />
+			<Tabs.Screen name="wardrobe" options={{ title: "Wardrobe" }} />
+			<Tabs.Screen name="recycle" options={{ title: "Recycle" }} />
+			<Tabs.Screen name="chat" options={{ title: "Chat" }} />
+			<Tabs.Screen name="store" options={{ title: "Store" }} />
+			<Tabs.Screen name="profile" options={{ title: "Profile" }} />
+		</Tabs>
+	);
 }
