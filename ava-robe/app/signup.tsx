@@ -28,7 +28,7 @@ export default function SignupScreen() {
 
 			if (response.ok) {
 				Alert.alert("Success", "Signup successful!");
-				-router.replace("/(tabs)");
+				-router.replace("/login");
 			} else {
 				Alert.alert("Error", data.error || "Signup failed");
 			}
