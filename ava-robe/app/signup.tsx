@@ -42,13 +42,13 @@ export default function SignupScreen() {
 			<View style={styles.formContainer}>
 				<Text style={styles.title}>Sign Up</Text>
 
-				<TextInput style={styles.input} placeholder="Name" placeholderTextColor="rgba(255,255,255,0.5)" value={name} onChangeText={setName} />
+				<TextInput style={styles.input} placeholder="Name" placeholderTextColor="#6E6E6E" value={name} onChangeText={setName} />
 
-				<TextInput style={styles.input} placeholder="Email" placeholderTextColor="rgba(255,255,255,0.5)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+				<TextInput style={styles.input} placeholder="Email" placeholderTextColor="#6E6E6E" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
-				<TextInput style={styles.input} placeholder="Password" placeholderTextColor="rgba(255,255,255,0.5)" value={password} onChangeText={setPassword} secureTextEntry />
+				<TextInput style={styles.input} placeholder="Password" placeholderTextColor="#6E6E6E" value={password} onChangeText={setPassword} secureTextEntry />
 
-				<TextInput style={styles.input} placeholder="Instagram (optional)" placeholderTextColor="rgba(255,255,255,0.5)" value={instagram} onChangeText={setInstagram} />
+				<TextInput style={styles.input} placeholder="Instagram (optional)" placeholderTextColor="#6E6E6E" value={instagram} onChangeText={setInstagram} />
 
 				<TouchableOpacity style={styles.button} onPress={handleSignup}>
 					<Text style={styles.buttonText}>Sign Up</Text>
@@ -65,41 +65,67 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#0F172A",
+		backgroundColor: "#FFFFFF",
 		justifyContent: "center",
-		padding: 20,
+		paddingHorizontal: 28,
 	},
+
 	formContainer: {
-		backgroundColor: "#1E2A5A",
-		padding: 20,
-		borderRadius: 10,
+		backgroundColor: "#FFFFFF",
 	},
+
 	title: {
-		fontSize: 24,
-		color: "#FFFFFF",
-		marginBottom: 20,
+		fontSize: 32,
+		color: "#1E1E1E",
+		marginBottom: 40,
 		textAlign: "center",
+		fontWeight: "700",
 	},
+
 	input: {
-		backgroundColor: "#0F172A",
-		color: "#FFFFFF",
-		padding: 15,
-		borderRadius: 5,
-		marginBottom: 15,
+		backgroundColor: "#FFFFFF",
+		color: "#1E1E1E",
+		padding: 16,
+		borderRadius: 10,
+		marginBottom: 18,
+		borderWidth: 1,
+		borderColor: "#FCC9D9",
+		fontSize: 16,
 	},
+
 	button: {
-		backgroundColor: "#B6FF3B",
-		padding: 15,
-		borderRadius: 5,
+		backgroundColor: "#FCC9D9",
+		borderRadius: 10,
+		height: 58,
 		alignItems: "center",
-		marginBottom: 15,
+		justifyContent: "center",
+		marginTop: 10,
+		marginBottom: 22,
+
+		borderWidth: 1,
+		borderColor: "#E9B5C4",
+
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 4,
+		},
+		shadowOpacity: 0.12,
+		shadowRadius: 6,
+
+		elevation: 5,
 	},
+
 	buttonText: {
-		color: "#0F172A",
-		fontWeight: "bold",
+		color: "#6E6E6E",
+		fontSize: 18,
+		fontWeight: "700",
+		letterSpacing: 1,
 	},
+
 	linkText: {
-		color: "#B6FF3B",
+		color: "#6E6E6E",
 		textAlign: "center",
+		fontSize: 15,
 	},
 });
