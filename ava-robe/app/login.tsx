@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
 
-const API_URL = "http://162.120.188.182:5000";
+const API_URL = "http://10.2.88.123:5000";
 
 export default function LoginScreen() {
 	const router = useRouter();
@@ -26,7 +26,7 @@ export default function LoginScreen() {
 
 			if (response.ok) {
 				Alert.alert("Success", "Login successful!");
-				router.replace("/(tabs)");
+				router.replace("/homepage");
 			} else {
 				Alert.alert("Error", data.error || "Login failed");
 			}
