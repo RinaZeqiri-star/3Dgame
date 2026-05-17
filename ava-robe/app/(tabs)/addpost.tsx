@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -30,6 +31,32 @@ export default function AddPostScreen() {
 		}
 	};
 
+	const uploadMedia = async () => {
+		const formData = new FormData();
+
+		for (let index = 0; index < mediaUris.length; index++) {
+			const uri = mediaUris[index];
+
+			const fileResponse = await fetch(uri);
+			const blob = await fileResponse.blob();
+
+			formData.append("media", blob, `recycle-media-${index}.jpg`);
+		}
+
+		const response = await fetch(`${API_URL}/upload-recycle-media`, {
+			method: "POST",
+			body: formData,
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.error || "Media upload failed");
+		}
+
+		return data.mediaUrls;
+	};
+
 	const createPost = async () => {
 		if (!title || !description || mediaUris.length === 0) {
 			Alert.alert("Error", "Please add pictures/videos, title and description.");
@@ -37,14 +64,24 @@ export default function AddPostScreen() {
 		}
 
 		try {
+			const storedUser = await AsyncStorage.getItem("user");
+
+			if (!storedUser) {
+				Alert.alert("Error", "No user found. Please login again.");
+				return;
+			}
+
+			const user = JSON.parse(storedUser);
+			const uploadedMediaUrls = await uploadMedia();
+
 			const response = await fetch(`${API_URL}/recycle-posts`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					title,
 					description,
-					mediaUris,
-					username: "rinaZ",
+					mediaUris: uploadedMediaUrls,
+					username: user.instagram || user.name,
 				}),
 			});
 
@@ -55,7 +92,7 @@ export default function AddPostScreen() {
 				Alert.alert("Error", "Could not create post.");
 			}
 		} catch (error) {
-			Alert.alert("Error", "Could not connect to server.");
+			Alert.alert("Error", "Could not upload post.");
 		}
 	};
 
@@ -206,7 +243,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#FFFFFF",
-
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 3 },
 		shadowOpacity: 0.18,

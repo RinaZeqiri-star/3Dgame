@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -25,6 +26,8 @@ export default function LoginScreen() {
 			const data = await response.json();
 
 			if (response.ok) {
+				await AsyncStorage.setItem("user", JSON.stringify(data.user));
+
 				Alert.alert("Success", "Login successful!");
 				router.replace("/homepage");
 			} else {

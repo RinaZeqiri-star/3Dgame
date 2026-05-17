@@ -8,7 +8,7 @@ type RecyclePost = {
 	_id: string;
 	title: string;
 	description: string;
-	imageUri: string;
+	mediaUris: string[];
 	username: string;
 };
 
@@ -50,7 +50,7 @@ export default function RecycleScreen() {
 					<Pressable key={post._id} style={styles.card}>
 						<Text style={styles.cardTitle}>{post.title}</Text>
 
-						<Image source={{ uri: post.imageUri }} style={styles.cardImage} />
+						{post.mediaUris?.[0] && !post.mediaUris[0].startsWith("blob:") && <Image source={{ uri: post.mediaUris[0] }} style={styles.cardImage} resizeMode="cover" />}
 
 						<Text style={styles.username}>{post.username}</Text>
 					</Pressable>
@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
 
 	card: {
 		width: "47%",
+		minHeight: 245,
 		borderWidth: 1.5,
 		borderColor: "#000000",
 		borderRadius: 10,
@@ -121,12 +122,12 @@ const styles = StyleSheet.create({
 	cardImage: {
 		width: "100%",
 		height: 145,
-		resizeMode: "cover",
 		marginBottom: 8,
 	},
 
 	username: {
 		fontSize: 13,
 		fontWeight: "700",
+		marginTop: "auto",
 	},
 });

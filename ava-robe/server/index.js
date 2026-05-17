@@ -16,6 +16,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
+
+const API_BASE_URL = "http://192.168.129.8:5000";
 
 const upload = multer({ dest: "uploads/" });
 
@@ -102,6 +105,31 @@ app.post("/login", async (req, res) => {
 
 		res.status(500).json({
 			error: "Server error",
+		});
+	}
+});
+
+app.post("/upload-recycle-media", upload.array("media", 20), (req, res) => {
+	try {
+		if (!req.files || req.files.length === 0) {
+			return res.status(400).json({
+				error: "No media uploaded",
+			});
+		}
+
+		const mediaUrls = req.files.map((file) => {
+			return `${API_BASE_URL}/uploads/${file.filename}`;
+		});
+
+		res.json({
+			message: "Media uploaded",
+			mediaUrls,
+		});
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Upload failed",
 		});
 	}
 });

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -25,12 +26,11 @@ export default function SignupScreen() {
 			});
 
 			const data = await response.json();
-
 			if (response.ok) {
+				await AsyncStorage.setItem("user", JSON.stringify(data.user));
+
 				Alert.alert("Success", "Signup successful!");
 				router.replace("/login");
-			} else {
-				Alert.alert("Error", data.error || "Signup failed");
 			}
 		} catch (error) {
 			Alert.alert("Error", "Could not connect to server. Check IP and backend status.");
