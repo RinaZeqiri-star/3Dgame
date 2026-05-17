@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-const API_URL = "http://10.2.88.123:5000";
+const API_URL = "http://192.168.129.8:5000";
 
 export default function LoginScreen() {
 	const router = useRouter();
