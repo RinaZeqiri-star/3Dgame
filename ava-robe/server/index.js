@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
+const RecyclePost = require("./models/RecyclePost");
 
 const multer = require("multer");
 const axios = require("axios");
@@ -151,6 +152,52 @@ app.post("/remove-background", upload.single("image"), async (req, res) => {
 
 		res.status(500).json({
 			error: "Background removal failed",
+		});
+	}
+});
+
+app.post("/recycle-posts", async (req, res) => {
+	try {
+		const { title, description, mediaUris, username } = req.body;
+
+		if (!title || !description || !mediaUris || mediaUris.length === 0) {
+			return res.status(400).json({
+				error: "Title, description and media are required",
+			});
+		}
+
+		const post = new RecyclePost({
+			title,
+			description,
+			mediaUris,
+			username,
+		});
+
+		await post.save();
+
+		res.status(201).json({
+			message: "Recycle post created",
+			post,
+		});
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Server error",
+		});
+	}
+});
+
+app.get("/recycle-posts", async (req, res) => {
+	try {
+		const posts = await RecyclePost.find().sort({ createdAt: -1 });
+
+		res.json(posts);
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Server error",
 		});
 	}
 });

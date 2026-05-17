@@ -12,6 +12,8 @@ export default function TabLayout() {
 		>
 			<Tabs.Screen name="homepage" />
 			<Tabs.Screen name="wardrobe" />
+			<Tabs.Screen name="recycle" />
+			<Tabs.Screen name="addpost" />
 		</Tabs>
 	);
 }
