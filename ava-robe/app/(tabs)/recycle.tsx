@@ -35,6 +35,10 @@ export default function RecycleScreen() {
 
 	return (
 		<View style={styles.container}>
+			<Pressable onPress={() => router.push("/homepage")}>
+				<Text style={styles.backArrow}>←</Text>
+			</Pressable>
+
 			<View style={styles.searchBar}>
 				<Pressable onPress={() => router.push("/addpost")}>
 					<Text style={styles.plus}>+</Text>
@@ -47,10 +51,24 @@ export default function RecycleScreen() {
 
 			<ScrollView contentContainerStyle={styles.grid}>
 				{filteredPosts.map((post) => (
-					<Pressable key={post._id} style={styles.card}>
+					<Pressable
+						key={post._id}
+						style={styles.card}
+						onPress={() =>
+							router.push({
+								pathname: "/recycle-detail",
+								params: {
+									title: post.title,
+									description: post.description,
+									username: post.username,
+									mediaUris: JSON.stringify(post.mediaUris),
+								},
+							})
+						}
+					>
 						<Text style={styles.cardTitle}>{post.title}</Text>
 
-						{post.mediaUris?.[0] && !post.mediaUris[0].startsWith("blob:") && <Image source={{ uri: post.mediaUris[0] }} style={styles.cardImage} resizeMode="cover" />}
+						{post.mediaUris?.[0] && <Image source={{ uri: post.mediaUris[0] }} style={styles.cardImage} resizeMode="cover" />}
 
 						<Text style={styles.username}>{post.username}</Text>
 					</Pressable>
@@ -64,8 +82,14 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#FFFFFF",
-		paddingTop: 65,
+		paddingTop: 50,
 		paddingHorizontal: 26,
+	},
+
+	backArrow: {
+		fontSize: 42,
+		color: "#6E6E6E",
+		marginBottom: 18,
 	},
 
 	searchBar: {
@@ -123,6 +147,7 @@ const styles = StyleSheet.create({
 		width: "100%",
 		height: 145,
 		marginBottom: 8,
+		borderRadius: 4,
 	},
 
 	username: {
