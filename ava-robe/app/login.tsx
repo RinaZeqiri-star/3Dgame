@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
 
 	title: {
 		fontSize: 32,
-		color: "#1E1E1E",
+		color: "#000000",
 		marginBottom: 40,
 		textAlign: "center",
 		fontWeight: "700",
@@ -81,17 +81,17 @@ const styles = StyleSheet.create({
 
 	input: {
 		backgroundColor: "#FFFFFF",
-		color: "#1E1E1E",
+		color: "#000000",
 		padding: 16,
 		borderRadius: 10,
 		marginBottom: 18,
 		borderWidth: 1,
-		borderColor: "#FCC9D9",
+		borderColor: "#000000",
 		fontSize: 16,
 	},
 
 	button: {
-		backgroundColor: "#FCC9D9",
+		backgroundColor: "#000000",
 		borderRadius: 10,
 		height: 58,
 		alignItems: "center",
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
 		marginBottom: 22,
 
 		borderWidth: 1,
-		borderColor: "#E9B5C4",
+		borderColor: "#000000",
 
 		shadowColor: "#000",
 		shadowOffset: {
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
 	},
 
 	buttonText: {
-		color: "#6E6E6E",
+		color: "#FFFFFF",
 		fontSize: 18,
 		fontWeight: "700",
 		letterSpacing: 1,

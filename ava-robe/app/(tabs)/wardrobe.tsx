@@ -1,22 +1,15 @@
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { PixelifySans_400Regular, useFonts } from "@expo-google-fonts/pixelify-sans";
-
-const API_URL = "http://10.2.88.123:5000";
+const API_URL = "http://192.168.129.8:5000";
 
 export default function WardrobeScreen() {
+	const router = useRouter();
+
 	const [designImage, setDesignImage] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-
-	const [fontsLoaded] = useFonts({
-		PixelifySans_400Regular,
-	});
-
-	if (!fontsLoaded) {
-		return null;
-	}
 
 	const pickDesignImage = async () => {
 		const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -81,20 +74,19 @@ export default function WardrobeScreen() {
 
 	return (
 		<View style={styles.container}>
-			<TouchableOpacity style={styles.backButton}>
+			<TouchableOpacity style={styles.backButton} onPress={() => router.push("/homepage")}>
 				<Text style={styles.backArrow}>←</Text>
 			</TouchableOpacity>
 
 			<Text style={styles.title}>Preview design</Text>
 
 			<TouchableOpacity style={styles.imageArea} onPress={pickDesignImage}>
-				{isLoading ? <ActivityIndicator size="large" color="#FCC9D9" /> : designImage ? <Image source={{ uri: designImage }} style={styles.preview} /> : <Text style={styles.uploadText}>Choose design image</Text>}
+				{isLoading ? <ActivityIndicator size="large" color="#6E6E6E" /> : designImage ? <Image source={{ uri: designImage }} style={styles.preview} /> : <Text style={styles.uploadText}>Choose design image</Text>}
 			</TouchableOpacity>
 
 			<Text style={styles.infoText}>This design will be applied to your item</Text>
 
 			<TouchableOpacity style={styles.button} onPress={removeBackground}>
-				<View style={styles.innerHighlight} />
 				<Text style={styles.buttonText}>{isLoading ? "Removing..." : "Try on"}</Text>
 			</TouchableOpacity>
 		</View>
@@ -108,16 +100,19 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 		paddingTop: 70,
 	},
+
 	backButton: {
 		position: "absolute",
 		top: 58,
 		left: 28,
 		zIndex: 2,
 	},
+
 	backArrow: {
 		fontSize: 44,
-		color: "#FCC9D9",
+		color: "#6E6E6E",
 	},
+
 	title: {
 		textAlign: "center",
 		fontSize: 22,
@@ -125,6 +120,7 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		marginBottom: 90,
 	},
+
 	imageArea: {
 		width: "100%",
 		height: 300,
@@ -132,57 +128,53 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		marginBottom: 85,
 	},
+
 	preview: {
 		width: 300,
 		height: 300,
 		resizeMode: "contain",
 	},
+
 	uploadText: {
 		color: "#6E6E6E",
 		fontSize: 18,
-		fontFamily: "PixelifySans_400Regular",
+		fontWeight: "600",
 	},
+
 	infoText: {
 		textAlign: "center",
 		fontSize: 20,
 		color: "#1E1E1E",
 		marginBottom: 100,
-		fontFamily: "PixelifySans_400Regular",
+		fontWeight: "700",
 	},
+
 	button: {
-		backgroundColor: "#FCC9D9",
+		backgroundColor: "#FFFFFF",
 		borderRadius: 10,
 		height: 58,
 		width: "82%",
 		alignSelf: "center",
 		alignItems: "center",
 		justifyContent: "center",
-		borderWidth: 1,
-		borderColor: "#E9B5C4",
+		borderWidth: 1.5,
+		borderColor: "#000000",
+
 		shadowColor: "#000",
 		shadowOffset: {
 			width: 0,
-			height: 4,
+			height: 3,
 		},
-		shadowOpacity: 0.12,
-		shadowRadius: 6,
-		elevation: 5,
-		overflow: "hidden",
+		shadowOpacity: 0.18,
+		shadowRadius: 4,
+		elevation: 4,
 	},
-	innerHighlight: {
-		position: "absolute",
-		top: 2,
-		left: 2,
-		right: 2,
-		height: 24,
-		borderRadius: 8,
-		backgroundColor: "rgba(255,255,255,0.18)",
-	},
+
 	buttonText: {
 		fontSize: 18,
 		color: "#6E6E6E",
 		letterSpacing: 1,
 		textAlign: "center",
-		fontFamily: "PixelifySans_400Regular",
+		fontWeight: "700",
 	},
 });

@@ -7,7 +7,7 @@ export default function HomepageScreen() {
 	return (
 		<ImageBackground source={require("../../assets/images/homepage-room.png")} style={styles.background} resizeMode="cover">
 			<View style={styles.container}>
-				<Pressable style={[styles.navButton, styles.wardrobe]} onPress={() => router.push("/wardrobe")}>
+				<Pressable style={[styles.navButton, styles.wardrobe]} onPress={() => router.push("/wardrobe2")}>
 					<Text style={styles.buttonText}>Wardrobe</Text>
 				</Pressable>
 

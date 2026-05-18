@@ -36,7 +36,6 @@ export default function AddPostScreen() {
 
 		for (let index = 0; index < mediaUris.length; index++) {
 			const uri = mediaUris[index];
-
 			const fileResponse = await fetch(uri);
 			const blob = await fileResponse.blob();
 
@@ -86,8 +85,7 @@ export default function AddPostScreen() {
 			});
 
 			if (response.ok) {
-				Alert.alert("Success", "Post created!");
-				router.push("/recycle");
+				router.replace("/recycle");
 			} else {
 				Alert.alert("Error", "Could not create post.");
 			}
