@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-const API_BASE_URL = "http://192.168.129.8:5000";
+const API_BASE_URL = "http://172.20.10.14:5000";
 
 const upload = multer({ dest: "uploads/" });
 
