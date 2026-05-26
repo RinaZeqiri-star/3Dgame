@@ -7,6 +7,10 @@ export type SavedClothing = {
 	category: string;
 	color: string;
 	designImage: string | null;
+	designX?: number;
+	designY?: number;
+	designScale?: number;
+	snapshotImage?: string | null;
 	fabric: string | null;
 	createdAt: string;
 };

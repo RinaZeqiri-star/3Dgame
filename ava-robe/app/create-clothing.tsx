@@ -2,10 +2,12 @@ import { saveClothing as saveClothingToStorage } from "@/utils/clothingStorage";
 import { createClothingDraft } from "@/utils/createClothingDraft";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Image, ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
-import ClothingViewer from "../components/ClothingViewer";
+import ClothingViewer, { ClothingViewerHandle } from "../components/ClothingViewer";
 import { designStore } from "../utils/designStore";
 
 type ClothingItem = {
@@ -47,6 +49,8 @@ export default function CreateClothingScreen() {
 	const router = useRouter();
 	const designImage = designStore.savedDesignImage;
 
+	const viewerRef = useRef<ClothingViewerHandle>(null);
+
 	const [activeTab, setActiveTab] = useState("Clothes");
 	const [selectedCategory, setSelectedCategory] = useState(createClothingDraft.selectedCategory);
 
@@ -55,6 +59,38 @@ export default function CreateClothingScreen() {
 	const [selectedColor, setSelectedColor] = useState<string | null>(createClothingDraft.selectedColor);
 
 	const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
+
+	const translateX = useSharedValue(0);
+	const translateY = useSharedValue(0);
+	const scale = useSharedValue(1);
+
+	const savedTranslateX = useSharedValue(0);
+	const savedTranslateY = useSharedValue(0);
+	const savedScale = useSharedValue(1);
+
+	const panGesture = Gesture.Pan()
+		.onUpdate((e) => {
+			translateX.value = savedTranslateX.value + e.translationX;
+			translateY.value = savedTranslateY.value + e.translationY;
+		})
+		.onEnd(() => {
+			savedTranslateX.value = translateX.value;
+			savedTranslateY.value = translateY.value;
+		});
+
+	const pinchGesture = Gesture.Pinch()
+		.onUpdate((e) => {
+			scale.value = Math.max(0.3, Math.min(savedScale.value * e.scale, 4));
+		})
+		.onEnd(() => {
+			savedScale.value = scale.value;
+		});
+
+	const composedGesture = Gesture.Simultaneous(panGesture, pinchGesture);
+
+	const animatedDesignStyle = useAnimatedStyle(() => ({
+		transform: [{ translateX: translateX.value }, { translateY: translateY.value }, { scale: scale.value }],
+	}));
 
 	const filteredItems = clothingItems.filter((item) => item.category === selectedCategory);
 
@@ -75,6 +111,8 @@ export default function CreateClothingScreen() {
 				return;
 			}
 
+			const snapshotImage = (await viewerRef.current?.takeSnapshot()) ?? null;
+
 			const savedItem = {
 				id: Date.now().toString(),
 				userId,
@@ -82,6 +120,10 @@ export default function CreateClothingScreen() {
 				category: selectedItem.category,
 				color: selectedColor ?? "#FFFFFF",
 				designImage: designImage ?? null,
+				designX: translateX.value,
+				designY: translateY.value,
+				designScale: scale.value,
+				snapshotImage,
 				fabric: selectedFabric?.id ?? null,
 				createdAt: new Date().toISOString(),
 			};
@@ -113,10 +155,14 @@ export default function CreateClothingScreen() {
 			<View style={styles.previewArea}>
 				<View style={styles.previewBox}>
 					<View style={{ width: "100%", height: 280 }}>
-						<ClothingViewer color={selectedColor} />
+						<ClothingViewer ref={viewerRef} color={selectedColor} />
 					</View>
 
-					{designImage ? <Image source={{ uri: designImage }} style={styles.designOverlay} /> : null}
+					{designImage ? (
+						<GestureDetector gesture={composedGesture}>
+							<Animated.Image source={{ uri: designImage }} style={[styles.designOverlay, animatedDesignStyle]} />
+						</GestureDetector>
+					) : null}
 				</View>
 			</View>
 

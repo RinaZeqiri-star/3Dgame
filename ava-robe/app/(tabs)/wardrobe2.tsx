@@ -1,3 +1,4 @@
+import ClothingViewer from "@/components/ClothingViewer";
 import { getSavedClothes, SavedClothing } from "@/utils/clothingStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -6,23 +7,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 
 const categories = ["T-shirt", "Jackets", "Sweaters", "Pants", "Dress", "Skirts", "Accessories", "Shoes"];
 
-const clothingPreviews: Record<string, any> = {
-	blouse3: require("../../assets/images/clothes/blouse3.png"),
-	blouse4: require("../../assets/images/clothes/blouse4.png"),
-	longsleve1: require("../../assets/images/clothes/longsleve1.png"),
-	longsleve5: require("../../assets/images/clothes/longsleve5.png"),
-	longsleve6: require("../../assets/images/clothes/longsleve6.png"),
-	jacekt1: require("../../assets/images/clothes/jacekt1.png"),
-	jacekt2: require("../../assets/images/clothes/jacekt2.png"),
-	jacekt3: require("../../assets/images/clothes/jacekt3.png"),
-	skirts3: require("../../assets/images/clothes/skirts3.png"),
-	skirts4: require("../../assets/images/clothes/skirts4.png"),
-	dress1: require("../../assets/images/clothes/dress1.png"),
-	dress11: require("../../assets/images/clothes/dress11.png"),
-	dress12: require("../../assets/images/clothes/dress12.png"),
-	dress15: require("../../assets/images/clothes/dress15.png"),
-	shoes9: require("../../assets/images/clothes/shoes9.png"),
-};
+const DESIGN_PREVIEW_RATIO = 42 / 75;
 
 export default function Wardrobe2Screen() {
 	const router = useRouter();
@@ -93,9 +78,30 @@ export default function Wardrobe2Screen() {
 								});
 							}}
 						>
-							<Image source={clothingPreviews[item.clothingId] ?? clothingPreviews.longsleve1} style={styles.clothingImage} resizeMode="contain" />
+							{item.snapshotImage ? (
+								<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
+							) : (
+								<View style={styles.viewerWrapper}>
+									<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+								</View>
+							)}
 
-							{item.designImage ? <Image source={{ uri: item.designImage }} style={styles.designImage} resizeMode="contain" /> : null}
+							{item.designImage ? (
+								<Image
+									source={{ uri: item.designImage }}
+									style={[
+										styles.designImage,
+										{
+											transform: [
+												{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
+												{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
+												{ scale: item.designScale ?? 1 },
+											],
+										},
+									]}
+									resizeMode="contain"
+								/>
+							) : null}
 						</Pressable>
 					))
 				)}
@@ -208,9 +214,9 @@ const styles = StyleSheet.create({
 		borderRadius: 50,
 	},
 
-	clothingImage: {
-		width: "78%",
-		height: "78%",
+	viewerWrapper: {
+		width: "100%",
+		height: "100%",
 		zIndex: 2,
 	},
 
