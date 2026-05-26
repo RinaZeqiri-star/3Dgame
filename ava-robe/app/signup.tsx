@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-const API_URL = "http://172.20.10.14:5000";
+const API_URL = "http://192.168.129.8:5000";
 
 export default function SignupScreen() {
 	const router = useRouter();

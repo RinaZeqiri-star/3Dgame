@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-const API_URL = "http://172.20.10.14:5000";
+const API_URL = "http://192.168.129.8:5000";
 
 export default function AddPostScreen() {
 	const router = useRouter();
