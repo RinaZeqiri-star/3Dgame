@@ -1,5 +1,6 @@
 import { saveClothing as saveClothingToStorage } from "@/utils/clothingStorage";
 import { createClothingDraft } from "@/utils/createClothingDraft";
+import { shrinkDataUri } from "@/utils/imageUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -111,7 +112,10 @@ export default function CreateClothingScreen() {
 				return;
 			}
 
-			const snapshotImage = (await viewerRef.current?.takeSnapshot()) ?? null;
+			const rawSnapshot = (await viewerRef.current?.takeSnapshot()) ?? null;
+
+			const snapshotImage = await shrinkDataUri(rawSnapshot, 260);
+			const shrunkDesignImage = await shrinkDataUri(designImage ?? null, 220);
 
 			const savedItem = {
 				id: Date.now().toString(),
@@ -119,7 +123,7 @@ export default function CreateClothingScreen() {
 				clothingId: selectedItem.id,
 				category: selectedItem.category,
 				color: selectedColor ?? "#FFFFFF",
-				designImage: designImage ?? null,
+				designImage: shrunkDesignImage,
 				designX: translateX.value,
 				designY: translateY.value,
 				designScale: scale.value,
@@ -130,7 +134,10 @@ export default function CreateClothingScreen() {
 
 			await saveClothingToStorage(savedItem);
 
-			router.replace("/wardrobe2");
+			router.replace({
+				pathname: "/clothing-info" as any,
+				params: { itemId: savedItem.id },
+			});
 		} catch (error) {
 			console.log("Save clothing error:", error);
 			Alert.alert("Error", "Could not save clothing");

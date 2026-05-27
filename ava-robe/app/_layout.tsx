@@ -22,6 +22,10 @@ export default function RootLayout() {
 					<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
 					<Stack.Screen name="create-clothing" options={{ headerShown: false }} />
+
+					<Stack.Screen name="clothing-info" options={{ headerShown: false }} />
+
+					<Stack.Screen name="clothing-detail" options={{ headerShown: false }} />
 				</Stack>
 
 				<StatusBar style="auto" />

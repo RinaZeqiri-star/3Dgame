@@ -71,10 +71,7 @@ export default function Wardrobe2Screen() {
 							onPress={() => {
 								router.push({
 									pathname: "/clothing-detail" as any,
-									params: {
-										clothingId: item.clothingId,
-										color: item.color,
-									},
+									params: { itemId: item.id },
 								});
 							}}
 						>

@@ -230,6 +230,184 @@ app.get("/recycle-posts", async (req, res) => {
 	}
 });
 
+const CLOTHING_WEIGHT_KG = {
+	tshirt: 0.2,
+	"t-shirt": 0.2,
+	shirt: 0.25,
+	blouse: 0.25,
+	top: 0.2,
+	sweater: 0.6,
+	hoodie: 0.7,
+	jumper: 0.6,
+	jacket: 1.0,
+	coat: 1.4,
+	pants: 0.6,
+	trousers: 0.6,
+	jeans: 0.7,
+	skirt: 0.35,
+	dress: 0.45,
+	shorts: 0.3,
+	default: 0.4,
+};
+
+const MATERIAL_WATER_L_PER_KG = {
+	"organic cotton": 8000,
+	cotton: 11000,
+	polyester: 60,
+	nylon: 600,
+	acrylic: 200,
+	wool: 5000,
+	linen: 4000,
+	hemp: 2700,
+	viscose: 3500,
+	rayon: 3500,
+	recycled: 500,
+};
+
+const MATERIAL_CO2_KG_PER_KG = {
+	"organic cotton": 2.3,
+	cotton: 8.0,
+	polyester: 9.5,
+	nylon: 11.0,
+	acrylic: 9.0,
+	wool: 30.0,
+	linen: 2.5,
+	hemp: 1.5,
+	viscose: 6.0,
+	rayon: 6.0,
+	recycled: 2.0,
+};
+
+const inferWeightKg = (clothingType) => {
+	const t = (clothingType || "").toLowerCase();
+
+	for (const key of Object.keys(CLOTHING_WEIGHT_KG)) {
+		if (t.includes(key)) return CLOTHING_WEIGHT_KG[key];
+	}
+
+	return CLOTHING_WEIGHT_KG.default;
+};
+
+const detectMaterial = (materials) => {
+	const m = (materials || "").toLowerCase();
+
+	if (m.includes("organic cotton")) return "organic cotton";
+	if (m.includes("recycled")) return "recycled";
+	if (m.includes("hemp")) return "hemp";
+	if (m.includes("linen")) return "linen";
+	if (m.includes("wool")) return "wool";
+	if (m.includes("viscose") || m.includes("rayon")) return "viscose";
+	if (m.includes("polyester")) return "polyester";
+	if (m.includes("nylon")) return "nylon";
+	if (m.includes("acrylic")) return "acrylic";
+	if (m.includes("cotton")) return "cotton";
+
+	return "cotton";
+};
+
+const shippingMultiplier = (madeIn) => {
+	const m = (madeIn || "").toLowerCase();
+
+	const nearby = ["eu", "europe", "germany", "italy", "portugal", "spain", "france", "netherlands", "belgium", "albania", "kosovo", "turkey"];
+	const far = ["china", "bangladesh", "india", "vietnam", "cambodia", "pakistan", "indonesia"];
+
+	if (nearby.some((x) => m.includes(x))) return 0.92;
+	if (far.some((x) => m.includes(x))) return 1.12;
+
+	return 1.0;
+};
+
+const washingMultiplier = (washing) => {
+	const w = (washing || "").toLowerCase();
+
+	let mult = 1.0;
+	if (w.includes("cold") || w.includes("30") || w.includes("20")) mult -= 0.05;
+	if (w.includes("60") || w.includes("hot")) mult += 0.05;
+	if (w.includes("90")) mult += 0.08;
+	if (w.includes("dry clean")) mult += 0.05;
+
+	return mult;
+};
+
+async function climatiqEstimateKgCo2(materialKey, weightKg) {
+	if (!process.env.CLIMATIQ_API_KEY) return null;
+
+	try {
+		const response = await axios.post(
+			"https://api.climatiq.io/data/v1/estimate",
+			{
+				emission_factor: {
+					activity_id: "consumer_goods-type_clothing_textile",
+					data_version: "^21",
+				},
+				parameters: {
+					money: weightKg * 25,
+					money_unit: "usd",
+				},
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${process.env.CLIMATIQ_API_KEY}`,
+					"Content-Type": "application/json",
+				},
+			},
+		);
+
+		const base = response.data.co2e;
+
+		const materialAdjust = (MATERIAL_CO2_KG_PER_KG[materialKey] ?? MATERIAL_CO2_KG_PER_KG.cotton) / MATERIAL_CO2_KG_PER_KG.cotton;
+
+		return base * materialAdjust;
+	} catch (err) {
+		console.log("Climatiq error:", err.response?.data || err.message);
+		return null;
+	}
+}
+
+app.post("/sustainability-estimate", async (req, res) => {
+	try {
+		const { materials, madeIn, washingInstructions, clothingType } = req.body;
+
+		const weightKg = inferWeightKg(clothingType);
+		const material = detectMaterial(materials);
+		const shipMult = shippingMultiplier(madeIn);
+		const washMult = washingMultiplier(washingInstructions);
+
+		const climatiqValue = await climatiqEstimateKgCo2(material, weightKg);
+
+		const itemCo2 =
+			climatiqValue !== null
+				? climatiqValue * shipMult * washMult
+				: (MATERIAL_CO2_KG_PER_KG[material] ?? MATERIAL_CO2_KG_PER_KG.cotton) * weightKg * shipMult * washMult;
+
+		const baselineMaterial = "polyester";
+		const baselineCo2 =
+			(await climatiqEstimateKgCo2(baselineMaterial, weightKg)) ?? MATERIAL_CO2_KG_PER_KG[baselineMaterial] * weightKg * 1.1;
+
+		const itemWater = (MATERIAL_WATER_L_PER_KG[material] ?? MATERIAL_WATER_L_PER_KG.cotton) * weightKg;
+		const baselineWater = MATERIAL_WATER_L_PER_KG.cotton * weightKg * 1.05;
+
+		const co2SavedPct = Math.max(0, Math.min(95, Math.round((1 - itemCo2 / baselineCo2) * 100)));
+		const waterSavedPct = Math.max(0, Math.min(95, Math.round((1 - itemWater / baselineWater) * 100)));
+
+		res.json({
+			co2SavedPct,
+			waterSavedPct,
+			itemCo2Kg: Number(itemCo2.toFixed(2)),
+			baselineCo2Kg: Number(baselineCo2.toFixed(2)),
+			itemWaterL: Math.round(itemWater),
+			baselineWaterL: Math.round(baselineWater),
+			source: climatiqValue !== null ? "climatiq" : "local",
+		});
+	} catch (err) {
+		console.log("Sustainability estimate error:", err);
+
+		res.status(500).json({
+			error: "Sustainability estimate failed",
+		});
+	}
+});
+
 mongoose
 	.connect(process.env.MONGO_URI)
 	.then(() => console.log("MongoDB connected"))

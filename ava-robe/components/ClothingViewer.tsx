@@ -48,7 +48,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 		glRef.current = gl;
 
 		const scene = new THREE.Scene();
-		scene.background = new THREE.Color(previewMode ? "#FFFFFF" : "#EDEDF1");
+		scene.background = new THREE.Color("#FFFFFF");
 		sceneRef.current = scene;
 
 		const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -57,7 +57,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 
 		const renderer = new Renderer({ gl });
 		renderer.setSize(width, height);
-		renderer.setClearColor(previewMode ? "#FFFFFF" : "#EDEDF1", 1);
+		renderer.setClearColor("#FFFFFF", 1);
 		rendererRef.current = renderer;
 
 		scene.add(new THREE.AmbientLight(0xffffff, 2));
