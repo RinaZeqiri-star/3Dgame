@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-const API_URL = "http://192.168.129.8:5000";
+const API_URL = "http://10.2.89.60:5000";
 
 export default function AddPostScreen() {
 	const router = useRouter();
@@ -85,6 +85,37 @@ export default function AddPostScreen() {
 			});
 
 			if (response.ok) {
+				try {
+					const coinsResponse = await fetch(`${API_URL}/coins/add`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({
+							userId: user._id,
+							amount: 20,
+							reason: "recycle_post",
+						}),
+					});
+
+					if (coinsResponse.ok) {
+						const coinsData = await coinsResponse.json();
+
+						const updatedUser = {
+							...user,
+							coins: coinsData.newBalance,
+							totalEarned: coinsData.newTotalEarned,
+						};
+						await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+
+						Alert.alert("+20 coins earned!");
+
+						if (coinsData.milestoneUnlocked) {
+							console.log(`Milestone ${coinsData.milestoneNumber} reached!`);
+						}
+					}
+				} catch (coinsError) {
+					console.log("Could not add coins", coinsError);
+				}
+
 				router.replace("/recycle");
 			} else {
 				Alert.alert("Error", "Could not create post.");

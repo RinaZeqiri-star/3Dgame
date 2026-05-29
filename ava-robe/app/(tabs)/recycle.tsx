@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-const API_URL = "http://192.168.129.8:5000";
+const API_URL = "http://10.2.89.60:5000";
 
 type RecyclePost = {
 	_id: string;

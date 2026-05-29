@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { setSavedDesignImage } from "../../utils/designStore";
 
-const API_URL = "http://192.168.129.8:5000";
+const API_URL = "http://10.2.89.60:5000";
 
 export default function WardrobeScreen() {
 	const router = useRouter();

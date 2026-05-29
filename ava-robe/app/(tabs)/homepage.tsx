@@ -11,6 +11,10 @@ export default function HomepageScreen() {
 					<Text style={styles.buttonText}>Wardrobe</Text>
 				</Pressable>
 
+				<Pressable style={[styles.navButton, styles.myRoom]} onPress={() => router.push("/my-room")}>
+					<Text style={styles.buttonText}>My Room</Text>
+				</Pressable>
+
 				<Pressable style={[styles.navButton, styles.store]} onPress={() => router.push("/store")}>
 					<Text style={styles.buttonText}>Store</Text>
 				</Pressable>
@@ -74,6 +78,11 @@ const styles = StyleSheet.create({
 	wardrobe: {
 		top: 80,
 		left: 10,
+	},
+
+	myRoom: {
+		top: 80,
+		right: 10,
 	},
 
 	store: {

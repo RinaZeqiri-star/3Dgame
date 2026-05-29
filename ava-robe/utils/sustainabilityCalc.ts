@@ -11,7 +11,7 @@ export type SustainabilityResult = {
 	source: "climatiq" | "local";
 };
 
-const API_BASE_URL = "http://192.168.129.8:5000";
+const API_BASE_URL = "http://10.2.89.60:5000";
 
 const CLOTHING_WEIGHT_KG: Record<string, number> = {
 	tshirt: 0.2,

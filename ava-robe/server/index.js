@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-const API_BASE_URL = "http://192.168.129.8:5000";
+const API_BASE_URL = "http://10.2.89.60:5000";
 
 const upload = multer({ dest: "uploads/" });
 
@@ -98,6 +98,145 @@ app.post("/login", async (req, res) => {
 
 		res.json({
 			message: "Login successful",
+			user: userData,
+		});
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Server error",
+		});
+	}
+});
+
+app.post("/coins/add", async (req, res) => {
+	try {
+		const { userId, amount, reason } = req.body;
+
+		const user = await User.findById(userId);
+
+		if (!user) {
+			return res.status(404).json({
+				error: "User not found",
+			});
+		}
+
+		const oldMilestoneCount = Math.floor(user.totalEarned / 50);
+
+		user.coins += amount;
+		user.totalEarned += amount;
+
+		const newMilestoneCount = Math.floor(user.totalEarned / 50);
+		const milestoneUnlocked = newMilestoneCount > oldMilestoneCount;
+		const milestoneNumber = milestoneUnlocked ? newMilestoneCount : null;
+
+		await user.save();
+
+		res.json({
+			newBalance: user.coins,
+			newTotalEarned: user.totalEarned,
+			milestoneUnlocked,
+			milestoneNumber,
+		});
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Server error",
+		});
+	}
+});
+
+app.post("/backgrounds/buy", async (req, res) => {
+	try {
+		const { userId, backgroundId, price } = req.body;
+
+		const user = await User.findById(userId);
+
+		if (!user) {
+			return res.status(404).json({
+				error: "User not found",
+			});
+		}
+
+		if (user.coins < price) {
+			return res.status(400).json({
+				error: "Not enough coins",
+			});
+		}
+
+		if (user.ownedBackgrounds.includes(backgroundId)) {
+			return res.status(400).json({
+				error: "Already owned",
+			});
+		}
+
+		user.coins -= price;
+		user.ownedBackgrounds.push(backgroundId);
+
+		await user.save();
+
+		const userData = {
+			_id: user._id,
+			name: user.name,
+			email: user.email,
+			instagram: user.instagram,
+			coins: user.coins,
+			totalEarned: user.totalEarned,
+			ownedBackgrounds: user.ownedBackgrounds,
+			currentBackground: user.currentBackground,
+			claimedMilestones: user.claimedMilestones,
+		};
+
+		res.json({
+			message: "Background purchased",
+			user: userData,
+		});
+	} catch (err) {
+		console.log(err);
+
+		res.status(500).json({
+			error: "Server error",
+		});
+	}
+});
+
+app.post("/backgrounds/apply", async (req, res) => {
+	try {
+		const { userId, backgroundId } = req.body;
+
+		const user = await User.findById(userId);
+
+		if (!user) {
+			return res.status(404).json({
+				error: "User not found",
+			});
+		}
+
+		if (!user.ownedBackgrounds.includes(backgroundId)) {
+			return res.status(400).json({
+				error: "Background not owned",
+			});
+		}
+
+		user.currentBackground = backgroundId;
+
+		await user.save();
+
+		const userData = {
+			_id: user._id,
+			name: user.name,
+			email: user.email,
+			instagram: user.instagram,
+			coins: user.coins,
+			totalEarned: user.totalEarned,
+			ownedBackgrounds: user.ownedBackgrounds,
+			currentBackground: user.currentBackground,
+			claimedMilestones: user.claimedMilestones,
+		};
+
+		res.json({
+			message: "Background applied",
 			user: userData,
 		});
 	} catch (err) {
@@ -375,14 +514,10 @@ app.post("/sustainability-estimate", async (req, res) => {
 
 		const climatiqValue = await climatiqEstimateKgCo2(material, weightKg);
 
-		const itemCo2 =
-			climatiqValue !== null
-				? climatiqValue * shipMult * washMult
-				: (MATERIAL_CO2_KG_PER_KG[material] ?? MATERIAL_CO2_KG_PER_KG.cotton) * weightKg * shipMult * washMult;
+		const itemCo2 = climatiqValue !== null ? climatiqValue * shipMult * washMult : (MATERIAL_CO2_KG_PER_KG[material] ?? MATERIAL_CO2_KG_PER_KG.cotton) * weightKg * shipMult * washMult;
 
 		const baselineMaterial = "polyester";
-		const baselineCo2 =
-			(await climatiqEstimateKgCo2(baselineMaterial, weightKg)) ?? MATERIAL_CO2_KG_PER_KG[baselineMaterial] * weightKg * 1.1;
+		const baselineCo2 = (await climatiqEstimateKgCo2(baselineMaterial, weightKg)) ?? MATERIAL_CO2_KG_PER_KG[baselineMaterial] * weightKg * 1.1;
 
 		const itemWater = (MATERIAL_WATER_L_PER_KG[material] ?? MATERIAL_WATER_L_PER_KG.cotton) * weightKg;
 		const baselineWater = MATERIAL_WATER_L_PER_KG.cotton * weightKg * 1.05;
