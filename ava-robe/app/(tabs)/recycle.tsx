@@ -1,8 +1,7 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-
-const API_URL = "http://10.2.89.60:5000";
+import { API_URL, resolveMediaUrl } from "../../utils/mediaUrl";
 
 type RecyclePost = {
 	_id: string;
@@ -27,9 +26,11 @@ export default function RecycleScreen() {
 		}
 	};
 
-	useEffect(() => {
-		fetchPosts();
-	}, []);
+	useFocusEffect(
+		useCallback(() => {
+			fetchPosts();
+		}, []),
+	);
 
 	const filteredPosts = posts.filter((post) => post.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -68,7 +69,7 @@ export default function RecycleScreen() {
 					>
 						<Text style={styles.cardTitle}>{post.title}</Text>
 
-						{post.mediaUris?.[0] && <Image source={{ uri: post.mediaUris[0] }} style={styles.cardImage} resizeMode="cover" />}
+						{post.mediaUris?.[0] && <Image source={{ uri: resolveMediaUrl(post.mediaUris[0]) }} style={styles.cardImage} resizeMode="cover" />}
 
 						<Text style={styles.username}>{post.username}</Text>
 					</Pressable>

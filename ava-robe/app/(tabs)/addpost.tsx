@@ -1,10 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-const API_URL = "http://10.2.89.60:5000";
+const showAlert = (message: string) => {
+	if (Platform.OS === "web" && typeof window !== "undefined") {
+		window.alert(message);
+	} else {
+		Alert.alert(message);
+	}
+};
+
+const API_URL = "http://192.168.129.8:5000";
 
 export default function AddPostScreen() {
 	const router = useRouter();
@@ -12,6 +20,14 @@ export default function AddPostScreen() {
 	const [mediaUris, setMediaUris] = useState<string[]>([]);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
+
+	useFocusEffect(
+		useCallback(() => {
+			setMediaUris([]);
+			setTitle("");
+			setDescription("");
+		}, []),
+	);
 
 	const pickMedia = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
@@ -85,6 +101,8 @@ export default function AddPostScreen() {
 			});
 
 			if (response.ok) {
+				let coinsEarned = false;
+
 				try {
 					const coinsResponse = await fetch(`${API_URL}/coins/add`, {
 						method: "POST",
@@ -106,7 +124,7 @@ export default function AddPostScreen() {
 						};
 						await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
 
-						Alert.alert("+20 coins earned!");
+						coinsEarned = true;
 
 						if (coinsData.milestoneUnlocked) {
 							console.log(`Milestone ${coinsData.milestoneNumber} reached!`);
@@ -114,6 +132,10 @@ export default function AddPostScreen() {
 					}
 				} catch (coinsError) {
 					console.log("Could not add coins", coinsError);
+				}
+
+				if (coinsEarned) {
+					showAlert("+20 coins earned!");
 				}
 
 				router.replace("/recycle");

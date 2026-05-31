@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image, Pressable, ScrollView, StyleSheet, Text } from "react-native";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 
 export default function RecycleDetailScreen() {
 	const router = useRouter();
@@ -17,7 +18,7 @@ export default function RecycleDetailScreen() {
 
 			<ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.imageSlider}>
 				{images.map((uri: string, index: number) => (
-					<Image key={`${uri}-${index}`} source={{ uri }} style={styles.image} resizeMode="cover" />
+					<Image key={`${uri}-${index}`} source={{ uri: resolveMediaUrl(uri) }} style={styles.image} resizeMode="cover" />
 				))}
 			</ScrollView>
 

@@ -18,8 +18,6 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-const API_BASE_URL = "http://10.2.89.60:5000";
-
 const upload = multer({ dest: "uploads/" });
 
 app.get("/", (req, res) => {
@@ -54,6 +52,11 @@ app.post("/signup", async (req, res) => {
 			name: user.name,
 			email: user.email,
 			instagram: user.instagram,
+			coins: user.coins,
+			totalEarned: user.totalEarned,
+			ownedBackgrounds: user.ownedBackgrounds,
+			currentBackground: user.currentBackground,
+			claimedMilestones: user.claimedMilestones,
 		};
 
 		res.status(201).json({
@@ -94,6 +97,11 @@ app.post("/login", async (req, res) => {
 			name: user.name,
 			email: user.email,
 			instagram: user.instagram,
+			coins: user.coins ?? 10,
+			totalEarned: user.totalEarned ?? 10,
+			ownedBackgrounds: user.ownedBackgrounds ?? [],
+			currentBackground: user.currentBackground ?? null,
+			claimedMilestones: user.claimedMilestones ?? [],
 		};
 
 		res.json({
@@ -257,7 +265,7 @@ app.post("/upload-recycle-media", upload.array("media", 20), (req, res) => {
 		}
 
 		const mediaUrls = req.files.map((file) => {
-			return `${API_BASE_URL}/uploads/${file.filename}`;
+			return `/uploads/${file.filename}`;
 		});
 
 		res.json({

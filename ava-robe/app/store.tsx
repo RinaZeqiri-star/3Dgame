@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-const API_URL = "http://10.2.89.60:5000";
+const API_URL = "http://192.168.129.8:5000";
 
 type StoreUser = {
 	_id: string;
