@@ -26,6 +26,8 @@ export default function RootLayout() {
 					<Stack.Screen name="clothing-info" options={{ headerShown: false }} />
 
 					<Stack.Screen name="clothing-detail" options={{ headerShown: false }} />
+
+					<Stack.Screen name="avatar" options={{ headerShown: false }} />
 				</Stack>
 
 				<StatusBar style="auto" />
