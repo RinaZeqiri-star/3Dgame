@@ -33,6 +33,26 @@ const clothingItems: ClothingItem[] = [
 		preview: require("../assets/images/clothes/longsleve1.png"),
 		model: null,
 	},
+	{
+		id: "tshirt",
+		category: "T-shirt",
+		// TODO: replace with assets/images/clothes/tshirt.png once a preview is added
+		preview: require("../assets/images/clothes/longsleve1.png"),
+		model: null,
+	},
+	{
+		id: "jeans",
+		category: "Pants",
+		// TODO: replace with assets/images/clothes/jeans.png once a preview is added
+		preview: require("../assets/images/clothes/skirts3.png"),
+		model: null,
+	},
+	{
+		id: "shoes",
+		category: "Shoes",
+		preview: require("../assets/images/clothes/shoes9.png"),
+		model: null,
+	},
 ];
 
 const colors = ["#FF6B6B", "#FFB347", "#FFD93D", "#6BCB77", "#4D96FF", "#9B59B6", "#FF85A2", "#1E1E1E", "#8B4513", "#F5E6CC", "#2ECC71", "#E74C3C", "#3498DB", "#F39C12", "#95A5A6"];
@@ -162,7 +182,8 @@ export default function CreateClothingScreen() {
 			<View style={styles.previewArea}>
 				<View style={styles.previewBox}>
 					<View style={{ width: "100%", height: 280 }}>
-						<ClothingViewer ref={viewerRef} color={selectedColor} />
+						{/* key forces a fresh GL context whenever a different clothing model is picked */}
+						<ClothingViewer key={selectedItem.id} ref={viewerRef} color={selectedColor} clothingId={selectedItem.id} />
 					</View>
 
 					{designImage ? (

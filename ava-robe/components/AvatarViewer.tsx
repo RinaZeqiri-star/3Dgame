@@ -6,12 +6,16 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getAvatarModel } from "../utils/avatarModels";
 
+type PoseMode = "rest" | "aPose";
+
 type AvatarViewerProps = {
 	skinColor?: string | null;
 	eyeColor?: string | null;
 	hairColor?: string | null;
 	hasHair?: boolean;
-	backgroundColor?: string;
+	backgroundColor?: string | null;
+	verticalFraming?: number;
+	poseMode?: PoseMode;
 };
 
 const DEFAULT_SKIN = "#E8C9A7";
@@ -19,6 +23,7 @@ const DEFAULT_EYE = "#6F4E37";
 const DEFAULT_HAIR = "#2C2118";
 const LIP_COLOR = "#F08080";
 const LASH_COLOR = "#1C1C1C";
+const UNDERWEAR_COLOR = "#141414";
 
 type MeshKind = "iris" | "eyeWhite" | "lash" | "brow" | "lip" | "underwear" | "hair" | "skin";
 
@@ -74,7 +79,30 @@ function disposeObject(node: THREE.Object3D | null) {
 	});
 }
 
-export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair = false, backgroundColor = "#FFFFFF" }: AvatarViewerProps) {
+const ARM_DROP_RAD = 1.2;
+
+function sideForUpperArmBone(boneName: string): "left" | "right" | null {
+	const n = boneName.toLowerCase();
+
+	if (/forearm|lowerarm|lower_arm|hand|finger|thumb/.test(n)) return null;
+	if (!/upperarm|upper_arm|(^|[._])arm($|[._])|shoulder|shldr/.test(n)) return null;
+
+	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
+	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+
+	if (isLeft && !isRight) return "left";
+	if (isRight && !isLeft) return "right";
+	return null;
+}
+
+function rankArmBone(name: string): number {
+	if (/upperarm|upper_arm/i.test(name)) return 3;
+	if (/(^|[._])arm($|[._])/i.test(name)) return 2;
+	return 1;
+}
+
+export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair = false, backgroundColor = "#FFFFFF", verticalFraming = 0, poseMode = "rest" }: AvatarViewerProps) {
+	const isTransparent = backgroundColor === null;
 	const requestRef = useRef<number | null>(null);
 	const bodyRef = useRef<THREE.Object3D | null>(null);
 	const hairRef = useRef<THREE.Object3D | null>(null);
@@ -89,15 +117,21 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 		glRef.current = gl;
 
 		const scene = new THREE.Scene();
-		scene.background = new THREE.Color(backgroundColor);
+		if (!isTransparent) {
+			scene.background = new THREE.Color(backgroundColor as string);
+		}
 		sceneRef.current = scene;
 
 		const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
 		cameraRef.current = camera;
 
-		const renderer = new Renderer({ gl });
+		const renderer = new Renderer({ gl, alpha: isTransparent });
 		renderer.setSize(width, height);
-		renderer.setClearColor(backgroundColor, 1);
+		if (isTransparent) {
+			renderer.setClearColor(0x000000, 0);
+		} else {
+			renderer.setClearColor(backgroundColor as string, 1);
+		}
 		rendererRef.current = renderer;
 
 		scene.add(new THREE.AmbientLight(0xffffff, 1.8));
@@ -111,14 +145,10 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 		await Promise.all([bodyAsset.downloadAsync(), hairAsset.downloadAsync()]);
 
 		const loader = new GLTFLoader();
-		const loadAsync = (uri: string): Promise<any> =>
-			new Promise((resolve, reject) => loader.load(uri, resolve, undefined, reject));
+		const loadAsync = (uri: string): Promise<any> => new Promise((resolve, reject) => loader.load(uri, resolve, undefined, reject));
 
 		try {
-			const [bodyGltf, hairGltf] = await Promise.all([
-				loadAsync(bodyAsset.localUri || bodyAsset.uri),
-				loadAsync(hairAsset.localUri || hairAsset.uri),
-			]);
+			const [bodyGltf, hairGltf] = await Promise.all([loadAsync(bodyAsset.localUri || bodyAsset.uri), loadAsync(hairAsset.localUri || hairAsset.uri)]);
 
 			const currentSkin = skinColor || DEFAULT_SKIN;
 			const currentEye = eyeColor || DEFAULT_EYE;
@@ -139,16 +169,16 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 				collectedNames.push(`mesh="${meshName}" mat="${matName}" map="${mapName}" -> ${kind}`);
 				meshKindsRef.current.set(child.uuid, kind);
 
-				if (kind === "underwear") {
-					child.visible = false;
+				if (kind === "lash" || kind === "brow") {
 					return;
 				}
 
-				// Lashes and brows are flat planes whose shape comes from the
-				// texture's alpha channel. If we replace the material we lose
-				// the alpha and end up with big rectangular black blocks.
-				// Keep the original material so transparency stays intact.
-				if (kind === "lash" || kind === "brow") {
+				if (kind === "underwear") {
+					child.material = new THREE.MeshStandardMaterial({
+						color: new THREE.Color(UNDERWEAR_COLOR),
+						roughness: 0.6,
+						metalness: 0.0,
+					});
 					return;
 				}
 
@@ -159,8 +189,6 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 				});
 			});
 
-			// Every mesh in hair.glb is hair geometry, so we don't bother
-			// classifying — just tint everything with hairColor.
 			hairGltf.scene.traverse((child: any) => {
 				if (!child.isMesh) return;
 				child.material = new THREE.MeshStandardMaterial({
@@ -172,25 +200,60 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 
 			console.log("[AvatarViewer] body.glb meshes:\n" + collectedNames.join("\n"));
 
+			if (poseMode === "aPose") {
+				const boneNames: string[] = [];
+				let leftArmBone: THREE.Object3D | null = null;
+				let rightArmBone: THREE.Object3D | null = null;
+
+				bodyGltf.scene.traverse((node: any) => {
+					if (!node.isBone) return;
+					boneNames.push(node.name);
+
+					const side = sideForUpperArmBone(node.name);
+					if (!side) return;
+
+					if (side === "left") {
+						if (!leftArmBone || rankArmBone(node.name) > rankArmBone(leftArmBone.name)) {
+							leftArmBone = node;
+						}
+					} else {
+						if (!rightArmBone || rankArmBone(node.name) > rankArmBone(rightArmBone.name)) {
+							rightArmBone = node;
+						}
+					}
+				});
+
+				if (leftArmBone) (leftArmBone as THREE.Object3D).rotation.z = -ARM_DROP_RAD;
+				if (rightArmBone) (rightArmBone as THREE.Object3D).rotation.z = ARM_DROP_RAD;
+
+				const leftName = leftArmBone ? (leftArmBone as THREE.Object3D).name : "(none)";
+				const rightName = rightArmBone ? (rightArmBone as THREE.Object3D).name : "(none)";
+				console.log("[AvatarViewer] bones:", boneNames);
+				console.log("[AvatarViewer] aPose rotation applied — left:", leftName, "right:", rightName);
+			}
+
 			const avatarGroup = new THREE.Group();
 			avatarGroup.add(bodyGltf.scene);
 			avatarGroup.add(hairGltf.scene);
 			scene.add(avatarGroup);
 
-			// Hair stays in the scene even when hidden so that the camera
-			// framing is stable when the user toggles it on/off.
 			hairGltf.scene.visible = hasHair;
 
 			bodyRef.current = bodyGltf.scene;
 			hairRef.current = hairGltf.scene;
 
+			avatarGroup.updateMatrixWorld(true);
+
 			const box = new THREE.Box3().setFromObject(avatarGroup);
 			const center = box.getCenter(new THREE.Vector3());
 			const size = box.getSize(new THREE.Vector3());
-			const maxDim = Math.max(size.x, size.y, size.z);
 
-			camera.position.set(center.x, center.y, center.z + maxDim * 1.6);
-			camera.lookAt(center);
+			const frameDim = Math.max(size.y, size.x * 0.6, size.z * 0.6);
+
+			const lookTarget = new THREE.Vector3(center.x, center.y + size.y * verticalFraming, center.z);
+
+			camera.position.set(center.x, center.y + size.y * verticalFraming, center.z + frameDim * 2.0);
+			camera.lookAt(lookTarget);
 
 			const animate = () => {
 				requestRef.current = requestAnimationFrame(animate);
@@ -250,5 +313,5 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 		};
 	}, []);
 
-	return <GLView style={{ flex: 1 }} onContextCreate={onContextCreate} />;
+	return <GLView style={{ flex: 1, backgroundColor: isTransparent ? "transparent" : undefined }} onContextCreate={onContextCreate} />;
 }
