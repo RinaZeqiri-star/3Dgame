@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { shrinkDataUri } from "./imageUtils";
+const API_URL = "http://192.168.129.8:5000";
 
 export type SavedClothing = {
 	id: string;
@@ -27,79 +27,137 @@ export type SavedClothing = {
 	sustainabilitySource?: "climatiq" | "local";
 };
 
-const getUserClothesKey = (userId: string) => {
-	return `savedClothes_${userId}`;
-};
+export type NewClothing = Omit<SavedClothing, "id">;
 
-export async function getSavedClothes(userId: string): Promise<SavedClothing[]> {
-	const key = getUserClothesKey(userId);
+// Mongo documents come back as _id; the rest of the app uses id.
+function normalizeClothing(doc: any): SavedClothing {
+	const rawId = doc?._id ?? doc?.id;
+	const id = typeof rawId === "string" ? rawId : rawId?.toString?.() ?? "";
 
-	const data = await AsyncStorage.getItem(key);
-
-	return data ? JSON.parse(data) : [];
+	return { ...doc, id };
 }
 
-const isQuotaError = (err: unknown) => {
-	const msg = err instanceof Error ? err.message : String(err);
-	return msg.toLowerCase().includes("quota");
-};
+// ---------------------------------------------------------------------------
+// Lightweight AsyncStorage cache — gives the wardrobe something to render
+// instantly on focus and lets the app fall back to the last-known list when
+// the server is briefly unreachable. Only used for reads.
+// ---------------------------------------------------------------------------
 
-async function compactExistingClothes(items: SavedClothing[]): Promise<SavedClothing[]> {
-	return Promise.all(
-		items.map(async (item) => ({
-			...item,
-			snapshotImage: await shrinkDataUri(item.snapshotImage ?? null, 220),
-			designImage: await shrinkDataUri(item.designImage ?? null, 200),
-		})),
-	);
-}
+const cacheKey = (userId: string) => `clothesCache_${userId}`;
 
-async function persistClothes(key: string, list: SavedClothing[]) {
+async function writeCache(userId: string, items: SavedClothing[]): Promise<void> {
 	try {
-		await AsyncStorage.setItem(key, JSON.stringify(list));
-	} catch (err) {
-		if (!isQuotaError(err)) throw err;
-
-		const compacted = await compactExistingClothes(list);
-
-		try {
-			await AsyncStorage.setItem(key, JSON.stringify(compacted));
-			return;
-		} catch (err2) {
-			if (!isQuotaError(err2)) throw err2;
-
-			const trimmed = compacted.slice(0, Math.max(1, Math.floor(compacted.length / 2)));
-			await AsyncStorage.setItem(key, JSON.stringify(trimmed));
-		}
+		await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(items));
+	} catch {
+		// Cache is best-effort — ignore quota errors here.
 	}
 }
 
-export async function saveClothing(item: SavedClothing) {
-	const key = getUserClothesKey(item.userId);
-
-	const current = await getSavedClothes(item.userId);
-
-	const updated = [item, ...current];
-
-	await persistClothes(key, updated);
-
-	return updated;
+async function readCache(userId: string): Promise<SavedClothing[]> {
+	try {
+		const data = await AsyncStorage.getItem(cacheKey(userId));
+		return data ? JSON.parse(data) : [];
+	} catch {
+		return [];
+	}
 }
 
-export async function updateClothing(userId: string, itemId: string, updates: Partial<SavedClothing>) {
-	const key = getUserClothesKey(userId);
+// ---------------------------------------------------------------------------
+// Public API — same names as before so screens don't need to change.
+// ---------------------------------------------------------------------------
 
-	const current = await getSavedClothes(userId);
+export async function getSavedClothes(userId: string): Promise<SavedClothing[]> {
+	if (!userId) return [];
 
-	const updated = current.map((item) => (item.id === itemId ? { ...item, ...updates } : item));
+	try {
+		const response = await fetch(`${API_URL}/clothes?userId=${encodeURIComponent(userId)}`);
 
-	await persistClothes(key, updated);
+		if (!response.ok) {
+			return readCache(userId);
+		}
+
+		const data = await response.json();
+		const clothes: SavedClothing[] = (data.clothes ?? []).map(normalizeClothing);
+
+		await writeCache(userId, clothes);
+		return clothes;
+	} catch (err) {
+		console.log("getSavedClothes network error — falling back to cache:", err);
+		return readCache(userId);
+	}
+}
+
+export async function saveClothing(item: NewClothing): Promise<SavedClothing> {
+	const response = await fetch(`${API_URL}/clothes`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(item),
+	});
+
+	if (!response.ok) {
+		const err = await response.json().catch(() => ({}));
+		throw new Error(err.error ?? "Could not save clothing");
+	}
+
+	const data = await response.json();
+	const saved = normalizeClothing(data.clothing);
+
+	// Refresh the cache so the wardrobe picks it up immediately on next focus.
+	const all = await getSavedClothes(item.userId).catch(() => [] as SavedClothing[]);
+	await writeCache(item.userId, all.length ? all : [saved]);
+
+	return saved;
+}
+
+export async function updateClothing(userId: string, itemId: string, updates: Partial<SavedClothing>): Promise<SavedClothing> {
+	const response = await fetch(`${API_URL}/clothes/${itemId}`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(updates),
+	});
+
+	if (!response.ok) {
+		const err = await response.json().catch(() => ({}));
+		throw new Error(err.error ?? "Could not update clothing");
+	}
+
+	const data = await response.json();
+	const updated = normalizeClothing(data.clothing);
+
+	const all = await getSavedClothes(userId).catch(() => [] as SavedClothing[]);
+	await writeCache(userId, all);
 
 	return updated;
 }
 
 export async function getClothingById(userId: string, itemId: string): Promise<SavedClothing | null> {
-	const current = await getSavedClothes(userId);
+	try {
+		const response = await fetch(`${API_URL}/clothes/${itemId}`);
 
-	return current.find((item) => item.id === itemId) ?? null;
+		if (!response.ok) {
+			const cached = await readCache(userId);
+			return cached.find((c) => c.id === itemId) ?? null;
+		}
+
+		const data = await response.json();
+		return data.clothing ? normalizeClothing(data.clothing) : null;
+	} catch (err) {
+		console.log("getClothingById network error — falling back to cache:", err);
+		const cached = await readCache(userId);
+		return cached.find((c) => c.id === itemId) ?? null;
+	}
+}
+
+export async function deleteClothing(userId: string, itemId: string): Promise<void> {
+	const response = await fetch(`${API_URL}/clothes/${itemId}`, {
+		method: "DELETE",
+	});
+
+	if (!response.ok && response.status !== 404) {
+		const err = await response.json().catch(() => ({}));
+		throw new Error(err.error ?? "Could not delete clothing");
+	}
+
+	const all = await getSavedClothes(userId).catch(() => [] as SavedClothing[]);
+	await writeCache(userId, all);
 }

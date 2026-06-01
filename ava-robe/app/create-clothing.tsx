@@ -134,11 +134,13 @@ export default function CreateClothingScreen() {
 
 			const rawSnapshot = (await viewerRef.current?.takeSnapshot()) ?? null;
 
-			const snapshotImage = await shrinkDataUri(rawSnapshot, 260);
-			const shrunkDesignImage = await shrinkDataUri(designImage ?? null, 220);
+			// Snapshot has a solid white background, so JPEG is fine and ~5-10x
+			// smaller than PNG. Design needs alpha so it stays PNG.
+			const snapshotImage = await shrinkDataUri(rawSnapshot, 220, "jpeg", 0.78);
+			const shrunkDesignImage = await shrinkDataUri(designImage ?? null, 180, "png");
 
-			const savedItem = {
-				id: Date.now().toString(),
+			// id is omitted — the server assigns _id and we use that for nav.
+			const newItem = {
 				userId,
 				clothingId: selectedItem.id,
 				category: selectedItem.category,
@@ -152,11 +154,11 @@ export default function CreateClothingScreen() {
 				createdAt: new Date().toISOString(),
 			};
 
-			await saveClothingToStorage(savedItem);
+			const saved = await saveClothingToStorage(newItem);
 
 			router.replace({
 				pathname: "/clothing-info" as any,
-				params: { itemId: savedItem.id },
+				params: { itemId: saved.id },
 			});
 		} catch (error) {
 			console.log("Save clothing error:", error);

@@ -1,6 +1,13 @@
 import { Platform } from "react-native";
 
-export async function shrinkDataUri(uri: string | null | undefined, maxDim = 240): Promise<string | null> {
+type ImageFormat = "png" | "jpeg";
+
+export async function shrinkDataUri(
+	uri: string | null | undefined,
+	maxDim = 240,
+	format: ImageFormat = "png",
+	quality = 0.85,
+): Promise<string | null> {
 	if (!uri) return null;
 	if (Platform.OS !== "web") return uri;
 	if (!uri.startsWith("data:image")) return uri;
@@ -24,10 +31,18 @@ export async function shrinkDataUri(uri: string | null | undefined, maxDim = 240
 				return;
 			}
 
+			// JPEG has no alpha — paint a white background so transparent
+			// pixels don't render as black after re-encoding.
+			if (format === "jpeg") {
+				ctx.fillStyle = "#FFFFFF";
+				ctx.fillRect(0, 0, w, h);
+			}
+
 			ctx.drawImage(img, 0, 0, w, h);
 
 			try {
-				resolve(canvas.toDataURL("image/png"));
+				const mime = format === "jpeg" ? "image/jpeg" : "image/png";
+				resolve(canvas.toDataURL(mime, quality));
 			} catch {
 				resolve(uri);
 			}

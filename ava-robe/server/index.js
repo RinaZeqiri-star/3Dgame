@@ -6,6 +6,7 @@ require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
 const RecyclePost = require("./models/RecyclePost");
+const Clothing = require("./models/Clothing");
 
 const multer = require("multer");
 const axios = require("axios");
@@ -15,7 +16,9 @@ const fs = require("fs");
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+// Bumped from the 100KB default because clothing items include base64 images
+// (snapshot + design) that can easily exceed it.
+app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static("uploads"));
 
 const upload = multer({ dest: "uploads/" });
@@ -548,6 +551,94 @@ app.post("/sustainability-estimate", async (req, res) => {
 		res.status(500).json({
 			error: "Sustainability estimate failed",
 		});
+	}
+});
+
+// ---------------------------------------------------------------------------
+// Clothing CRUD — replaces the old client-side localStorage approach so the
+// browser quota no longer caps a user's wardrobe.
+// ---------------------------------------------------------------------------
+
+app.post("/clothes", async (req, res) => {
+	try {
+		const { userId, ...rest } = req.body;
+
+		if (!userId) {
+			return res.status(400).json({ error: "userId is required" });
+		}
+
+		const clothing = await Clothing.create({ userId, ...rest });
+
+		res.status(201).json({ clothing });
+	} catch (err) {
+		console.log("Create clothing error:", err);
+		res.status(500).json({ error: "Could not save clothing" });
+	}
+});
+
+app.get("/clothes", async (req, res) => {
+	try {
+		const { userId } = req.query;
+
+		if (!userId) {
+			return res.status(400).json({ error: "userId is required" });
+		}
+
+		const items = await Clothing.find({ userId }).sort({ createdAt: -1 });
+
+		res.json({ clothes: items });
+	} catch (err) {
+		console.log("List clothing error:", err);
+		res.status(500).json({ error: "Could not load clothing" });
+	}
+});
+
+app.get("/clothes/:id", async (req, res) => {
+	try {
+		const item = await Clothing.findById(req.params.id);
+
+		if (!item) {
+			return res.status(404).json({ error: "Clothing not found" });
+		}
+
+		res.json({ clothing: item });
+	} catch (err) {
+		console.log("Get clothing error:", err);
+		res.status(500).json({ error: "Could not load clothing" });
+	}
+});
+
+app.put("/clothes/:id", async (req, res) => {
+	try {
+		const { userId: _ignored, ...updates } = req.body;
+
+		const updated = await Clothing.findByIdAndUpdate(req.params.id, updates, {
+			new: true,
+		});
+
+		if (!updated) {
+			return res.status(404).json({ error: "Clothing not found" });
+		}
+
+		res.json({ clothing: updated });
+	} catch (err) {
+		console.log("Update clothing error:", err);
+		res.status(500).json({ error: "Could not update clothing" });
+	}
+});
+
+app.delete("/clothes/:id", async (req, res) => {
+	try {
+		const deleted = await Clothing.findByIdAndDelete(req.params.id);
+
+		if (!deleted) {
+			return res.status(404).json({ error: "Clothing not found" });
+		}
+
+		res.json({ deleted: true });
+	} catch (err) {
+		console.log("Delete clothing error:", err);
+		res.status(500).json({ error: "Could not delete clothing" });
 	}
 });
 
