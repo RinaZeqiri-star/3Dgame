@@ -1,14 +1,18 @@
 import AvatarViewer from "@/components/AvatarViewer";
+import ClothingViewer from "@/components/ClothingViewer";
+import { getHairstyleList } from "@/utils/hairstyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const SCREEN_BG = "#EBEBEB";
 
 const SKIN_COLORS = ["#F5D5BB", "#E0B59A", "#C68863", "#8D5524", "#5C3317"];
 const EYE_COLORS = ["#6F4E37", "#1C3A57", "#2E5E2E", "#B8956A", "#1C1C1C"];
 const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#D4B26A", "#8B3A2C"];
+
+const HAIRSTYLES = getHairstyleList();
 
 type Tab = "skin" | "eyes" | "hair";
 
@@ -19,6 +23,7 @@ export default function AvatarScreen() {
 	const [eyeColor, setEyeColor] = useState<string>(EYE_COLORS[0]);
 	const [hairColor, setHairColor] = useState<string>(HAIR_COLORS[0]);
 	const [hasHair, setHasHair] = useState<boolean>(false);
+	const [hairstyleId, setHairstyleId] = useState<string>("default");
 	const [activeTab, setActiveTab] = useState<Tab>("skin");
 
 	useEffect(() => {
@@ -31,6 +36,7 @@ export default function AvatarScreen() {
 			if (user.eyeColor) setEyeColor(user.eyeColor);
 			if (user.hairColor) setHairColor(user.hairColor);
 			if (typeof user.hasHair === "boolean") setHasHair(user.hasHair);
+			if (user.hairstyleId) setHairstyleId(user.hairstyleId);
 		};
 
 		loadStoredColors();
@@ -46,7 +52,7 @@ export default function AvatarScreen() {
 			}
 
 			const user = JSON.parse(storedUser);
-			const updatedUser = { ...user, skinColor, eyeColor, hairColor, hasHair };
+			const updatedUser = { ...user, skinColor, eyeColor, hairColor, hasHair, hairstyleId };
 
 			await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -79,7 +85,8 @@ export default function AvatarScreen() {
 			</Pressable>
 
 			<View style={styles.viewerArea}>
-				<AvatarViewer skinColor={skinColor} eyeColor={eyeColor} hairColor={hairColor} hasHair={hasHair} backgroundColor={SCREEN_BG} />
+				{/* key remount on hairstyle change so the new GLB actually loads. */}
+				<AvatarViewer key={hairstyleId} skinColor={skinColor} eyeColor={eyeColor} hairColor={hairColor} hasHair={hasHair} hairstyleId={hairstyleId} backgroundColor={SCREEN_BG} />
 			</View>
 
 			<View style={styles.swatchColumn}>
@@ -117,9 +124,25 @@ export default function AvatarScreen() {
 				<Text style={styles.helperText}>{helperText}</Text>
 
 				{activeTab === "hair" ? (
-					<Pressable style={styles.hairToggle} onPress={() => setHasHair(!hasHair)}>
-						<Text style={styles.hairToggleText}>{hasHair ? "Remove hair" : "Put on hair"}</Text>
-					</Pressable>
+					<>
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hairstyleRow}>
+							{HAIRSTYLES.map((style) => {
+								const isSelected = hairstyleId === style.id;
+								return (
+									<Pressable key={style.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setHairstyleId(style.id)}>
+										<View style={styles.hairstylePreview} pointerEvents="none">
+											<ClothingViewer modelAsset={style.model} color={hairColor} category="Hair" previewMode />
+										</View>
+										<Text style={[styles.hairstyleText, isSelected && styles.hairstyleTextSelected]}>{style.name}</Text>
+									</Pressable>
+								);
+							})}
+						</ScrollView>
+
+						<Pressable style={styles.hairToggle} onPress={() => setHasHair(!hasHair)}>
+							<Text style={styles.hairToggleText}>{hasHair ? "Remove hair" : "Put on hair"}</Text>
+						</Pressable>
+					</>
 				) : null}
 			</View>
 		</View>
@@ -227,7 +250,7 @@ const styles = StyleSheet.create({
 
 	hairToggle: {
 		alignSelf: "center",
-		marginTop: 20,
+		marginTop: 16,
 		backgroundColor: "#1E1E1E",
 		borderRadius: 10,
 		paddingHorizontal: 28,
@@ -239,5 +262,45 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		fontWeight: "700",
 		letterSpacing: 0.5,
+	},
+
+	hairstyleRow: {
+		paddingHorizontal: 4,
+		paddingVertical: 16,
+		gap: 12,
+	},
+
+	hairstyleCard: {
+		width: 110,
+		paddingVertical: 8,
+		paddingHorizontal: 8,
+		borderRadius: 16,
+		borderWidth: 1.4,
+		borderColor: "#1E1E1E",
+		backgroundColor: "#FFFFFF",
+		alignItems: "center",
+	},
+
+	hairstyleCardSelected: {
+		backgroundColor: "#1E1E1E",
+	},
+
+	hairstylePreview: {
+		width: 94,
+		height: 84,
+		borderRadius: 10,
+		overflow: "hidden",
+		marginBottom: 6,
+		backgroundColor: "#FFFFFF",
+	},
+
+	hairstyleText: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#1E1E1E",
+	},
+
+	hairstyleTextSelected: {
+		color: "#FFFFFF",
 	},
 });

@@ -1,8 +1,9 @@
 import AvatarViewer from "@/components/AvatarViewer";
 import { getBackgroundById } from "@/utils/backgrounds";
+import { EquippedItem, getOutfit } from "@/utils/outfitStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ImageBackground, ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
 
 const FALLBACK_BACKGROUND = require("../assets/images/backgrounds/download (21) 1.png");
@@ -12,6 +13,7 @@ type SavedAvatar = {
 	eyeColor: string | null;
 	hairColor: string | null;
 	hasHair: boolean;
+	hairstyleId: string | null;
 };
 
 const EMPTY_AVATAR: SavedAvatar = {
@@ -19,6 +21,7 @@ const EMPTY_AVATAR: SavedAvatar = {
 	eyeColor: null,
 	hairColor: null,
 	hasHair: false,
+	hairstyleId: null,
 };
 
 export default function MyRoomScreen() {
@@ -28,6 +31,7 @@ export default function MyRoomScreen() {
 	const [coins, setCoins] = useState<number>(0);
 	const [avatar, setAvatar] = useState<SavedAvatar>(EMPTY_AVATAR);
 	const [hasSavedAvatar, setHasSavedAvatar] = useState<boolean>(false);
+	const [outfit, setOutfitState] = useState<EquippedItem[]>([]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -39,6 +43,7 @@ export default function MyRoomScreen() {
 					setCoins(0);
 					setAvatar(EMPTY_AVATAR);
 					setHasSavedAvatar(false);
+					setOutfitState([]);
 					return;
 				}
 
@@ -50,10 +55,17 @@ export default function MyRoomScreen() {
 					eyeColor: user.eyeColor ?? null,
 					hairColor: user.hairColor ?? null,
 					hasHair: typeof user.hasHair === "boolean" ? user.hasHair : false,
+					hairstyleId: user.hairstyleId ?? null,
 				};
 
 				setAvatar(savedAvatar);
 				setHasSavedAvatar(Boolean(user.skinColor || user.eyeColor || user.hairColor));
+
+				const uid = user._id || user.id;
+				if (uid) {
+					const loadedOutfit = await getOutfit(uid);
+					setOutfitState(loadedOutfit);
+				}
 
 				if (user.currentBackground) {
 					const bg = getBackgroundById(user.currentBackground);
@@ -71,6 +83,8 @@ export default function MyRoomScreen() {
 		}, []),
 	);
 
+	const viewerKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${outfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, outfit]);
+
 	return (
 		<ImageBackground source={backgroundSource} style={styles.screen} resizeMode="cover">
 			<Pressable onPress={() => router.push("/homepage")} style={styles.backButton}>
@@ -84,7 +98,8 @@ export default function MyRoomScreen() {
 
 			<View style={styles.avatarStage} pointerEvents="none">
 				{hasSavedAvatar ? (
-					<AvatarViewer skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} backgroundColor={null} verticalFraming={0.08} poseMode="aPose" />
+					// poseMode "rest" = use the pose baked into the asset (we don't rotate bones at runtime).
+					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} backgroundColor={null} verticalFraming={0.08} poseMode="rest" outfit={outfit} />
 				) : (
 					<View style={styles.avatarPlaceholder}>
 						<Text style={styles.placeholderText}>Save your avatar to see it here</Text>
@@ -113,7 +128,7 @@ export default function MyRoomScreen() {
 					<Text style={styles.ecoLabel}>Water usage</Text>
 				</View>
 
-				<Pressable style={styles.addOutfitButton} onPress={() => router.push("/wardrobe2")}>
+				<Pressable style={styles.addOutfitButton} onPress={() => router.push("/wardrobe2?outfitMode=true")}>
 					<Text style={styles.addOutfitText}>Add outfit</Text>
 				</Pressable>
 			</View>

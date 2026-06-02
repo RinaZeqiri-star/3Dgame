@@ -1,7 +1,8 @@
 import ClothingViewer from "@/components/ClothingViewer";
 import { getSavedClothes, SavedClothing } from "@/utils/clothingStorage";
+import { EquippedItem, getOutfit, setOutfit, toggleItemInOutfit } from "@/utils/outfitStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -11,36 +12,75 @@ const DESIGN_PREVIEW_RATIO = 42 / 75;
 
 export default function Wardrobe2Screen() {
 	const router = useRouter();
+	const { outfitMode } = useLocalSearchParams<{ outfitMode?: string }>();
+	const isOutfitMode = outfitMode === "true";
+
 	const [selectedCategory, setSelectedCategory] = useState("T-shirt");
 	const [savedClothes, setSavedClothes] = useState<SavedClothing[]>([]);
+	const [equippedItems, setEquippedItems] = useState<EquippedItem[]>([]);
+	const [userId, setUserId] = useState<string | null>(null);
 
 	useFocusEffect(
 		useCallback(() => {
-			const loadSavedClothes = async () => {
+			const loadAll = async () => {
 				const storedUser = await AsyncStorage.getItem("user");
 
 				if (!storedUser) {
 					setSavedClothes([]);
+					setEquippedItems([]);
+					setUserId(null);
 					return;
 				}
 
 				const user = JSON.parse(storedUser);
-				const userId = user._id || user.id;
+				const uid = user._id || user.id;
 
-				if (!userId) {
+				if (!uid) {
 					setSavedClothes([]);
+					setEquippedItems([]);
+					setUserId(null);
 					return;
 				}
 
-				const clothes = await getSavedClothes(userId);
+				setUserId(uid);
+
+				const [clothes, outfit] = await Promise.all([getSavedClothes(uid), getOutfit(uid)]);
 				setSavedClothes(clothes);
+				setEquippedItems(outfit);
 			};
 
-			loadSavedClothes();
+			loadAll();
 		}, []),
 	);
 
 	const filteredClothes = savedClothes.filter((item) => item.category === selectedCategory);
+
+	const isEquipped = (itemId: string) => equippedItems.some((eq) => eq.id === itemId);
+
+	const handleItemPress = (item: SavedClothing) => {
+		if (isOutfitMode) {
+			const ref: EquippedItem = {
+				id: item.id,
+				clothingId: item.clothingId,
+				category: item.category,
+				color: item.color,
+			};
+			setEquippedItems((current) => toggleItemInOutfit(current, ref));
+			return;
+		}
+
+		router.push({
+			pathname: "/clothing-detail" as any,
+			params: { itemId: item.id },
+		});
+	};
+
+	const handleDone = async () => {
+		if (userId) {
+			await setOutfit(userId, equippedItems);
+		}
+		router.replace("/my-room");
+	};
 
 	return (
 		<View style={styles.container}>
@@ -64,45 +104,52 @@ export default function Wardrobe2Screen() {
 				{filteredClothes.length === 0 ? (
 					<Text style={styles.emptyText}>No saved clothes yet</Text>
 				) : (
-					filteredClothes.map((item) => (
-						<Pressable
-							key={item.id}
-							style={styles.savedItem}
-							onPress={() => {
-								router.push({
-									pathname: "/clothing-detail" as any,
-									params: { itemId: item.id },
-								});
-							}}
-						>
-							{item.snapshotImage ? (
-								<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
-							) : (
-								<View style={styles.viewerWrapper}>
-									<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
-								</View>
-							)}
+					filteredClothes.map((item) => {
+						const equipped = isEquipped(item.id);
 
-							{item.designImage ? (
-								<Image
-									source={{ uri: item.designImage }}
-									style={[
-										styles.designImage,
-										{
-											transform: [
-												{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
-												{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
-												{ scale: item.designScale ?? 1 },
-											],
-										},
-									]}
-									resizeMode="contain"
-								/>
-							) : null}
-						</Pressable>
-					))
+						return (
+							<Pressable key={item.id} style={[styles.savedItem, isOutfitMode && equipped && styles.equippedItem]} onPress={() => handleItemPress(item)}>
+								{item.snapshotImage ? (
+									<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
+								) : (
+									<View style={styles.viewerWrapper}>
+										<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+									</View>
+								)}
+
+								{item.designImage ? (
+									<Image
+										source={{ uri: item.designImage }}
+										style={[
+											styles.designImage,
+											{
+												transform: [
+													{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
+													{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
+													{ scale: item.designScale ?? 1 },
+												],
+											},
+										]}
+										resizeMode="contain"
+									/>
+								) : null}
+
+								{isOutfitMode && equipped ? (
+									<View style={styles.checkBadge}>
+										<Text style={styles.checkText}>✓</Text>
+									</View>
+								) : null}
+							</Pressable>
+						);
+					})
 				)}
 			</ScrollView>
+
+			{isOutfitMode ? (
+				<Pressable style={styles.doneButton} onPress={handleDone}>
+					<Text style={styles.doneText}>Done</Text>
+				</Pressable>
+			) : null}
 		</View>
 	);
 }
@@ -231,5 +278,46 @@ const styles = StyleSheet.create({
 		marginTop: 40,
 		fontSize: 16,
 		color: "#777777",
+	},
+
+	equippedItem: {
+		backgroundColor: "#F4F0E1",
+	},
+
+	checkBadge: {
+		position: "absolute",
+		top: 8,
+		right: 8,
+		width: 26,
+		height: 26,
+		borderRadius: 13,
+		backgroundColor: "#1E1E1E",
+		alignItems: "center",
+		justifyContent: "center",
+		zIndex: 4,
+	},
+
+	checkText: {
+		color: "#FFFFFF",
+		fontSize: 15,
+		fontWeight: "800",
+	},
+
+	doneButton: {
+		position: "absolute",
+		bottom: 28,
+		alignSelf: "center",
+		backgroundColor: "#1E1E1E",
+		borderRadius: 14,
+		paddingHorizontal: 48,
+		paddingVertical: 14,
+		zIndex: 5,
+	},
+
+	doneText: {
+		color: "#FFFFFF",
+		fontSize: 17,
+		fontWeight: "800",
+		letterSpacing: 1,
 	},
 });

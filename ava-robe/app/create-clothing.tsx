@@ -24,7 +24,7 @@ type Fabric = {
 	color: string;
 };
 
-const categories = ["T-shirt", "Pants", "Skirts", "Jackets", "Dresses", "Shoes"];
+const categories = ["T-shirt", "Sweaters", "Pants", "Skirts", "Jackets", "Dresses", "Shoes"];
 
 const clothingItems: ClothingItem[] = [
 	{
@@ -50,6 +50,27 @@ const clothingItems: ClothingItem[] = [
 	{
 		id: "shoes",
 		category: "Shoes",
+		preview: require("../assets/images/clothes/shoes9.png"),
+		model: null,
+	},
+	{
+		id: "hoodie",
+		category: "Sweaters",
+		// TODO: replace with assets/images/clothes/hoodie.png once a real preview is added
+		preview: require("../assets/images/clothes/longsleve5.png"),
+		model: null,
+	},
+	{
+		id: "shorts",
+		category: "Pants",
+		// TODO: replace with assets/images/clothes/shorts.png once a real preview is added
+		preview: require("../assets/images/clothes/skirts4.png"),
+		model: null,
+	},
+	{
+		id: "boots",
+		category: "Shoes",
+		// TODO: replace with a boot-specific preview once available
 		preview: require("../assets/images/clothes/shoes9.png"),
 		model: null,
 	},
@@ -185,7 +206,7 @@ export default function CreateClothingScreen() {
 				<View style={styles.previewBox}>
 					<View style={{ width: "100%", height: 280 }}>
 						{/* key forces a fresh GL context whenever a different clothing model is picked */}
-						<ClothingViewer key={selectedItem.id} ref={viewerRef} color={selectedColor} clothingId={selectedItem.id} />
+						<ClothingViewer key={selectedItem.id} ref={viewerRef} color={selectedColor} clothingId={selectedItem.id} category={selectedItem.category} />
 					</View>
 
 					{designImage ? (
@@ -247,7 +268,10 @@ export default function CreateClothingScreen() {
 												createClothingDraft.selectedCategory = item.category;
 											}}
 										>
-											<Image source={item.preview} style={styles.gridThumb} />
+											{/* Live 3D model preview instead of a static PNG placeholder. */}
+											<View style={styles.gridThumb} pointerEvents="none">
+												<ClothingViewer clothingId={item.id} category={item.category} previewMode />
+											</View>
 										</Pressable>
 									);
 								})}
@@ -448,7 +472,9 @@ const styles = StyleSheet.create({
 	gridThumb: {
 		width: "90%",
 		height: "90%",
-		resizeMode: "contain",
+		overflow: "hidden",
+		borderRadius: 10,
+		backgroundColor: "#FFFFFF",
 	},
 
 	colorGrid: {

@@ -29,28 +29,19 @@ export type SavedClothing = {
 
 export type NewClothing = Omit<SavedClothing, "id">;
 
-// Mongo documents come back as _id; the rest of the app uses id.
 function normalizeClothing(doc: any): SavedClothing {
 	const rawId = doc?._id ?? doc?.id;
-	const id = typeof rawId === "string" ? rawId : rawId?.toString?.() ?? "";
+	const id = typeof rawId === "string" ? rawId : (rawId?.toString?.() ?? "");
 
 	return { ...doc, id };
 }
-
-// ---------------------------------------------------------------------------
-// Lightweight AsyncStorage cache — gives the wardrobe something to render
-// instantly on focus and lets the app fall back to the last-known list when
-// the server is briefly unreachable. Only used for reads.
-// ---------------------------------------------------------------------------
 
 const cacheKey = (userId: string) => `clothesCache_${userId}`;
 
 async function writeCache(userId: string, items: SavedClothing[]): Promise<void> {
 	try {
 		await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(items));
-	} catch {
-		// Cache is best-effort — ignore quota errors here.
-	}
+	} catch {}
 }
 
 async function readCache(userId: string): Promise<SavedClothing[]> {
@@ -61,10 +52,6 @@ async function readCache(userId: string): Promise<SavedClothing[]> {
 		return [];
 	}
 }
-
-// ---------------------------------------------------------------------------
-// Public API — same names as before so screens don't need to change.
-// ---------------------------------------------------------------------------
 
 export async function getSavedClothes(userId: string): Promise<SavedClothing[]> {
 	if (!userId) return [];
@@ -101,8 +88,6 @@ export async function saveClothing(item: NewClothing): Promise<SavedClothing> {
 
 	const data = await response.json();
 	const saved = normalizeClothing(data.clothing);
-
-	// Refresh the cache so the wardrobe picks it up immediately on next focus.
 	const all = await getSavedClothes(item.userId).catch(() => [] as SavedClothing[]);
 	await writeCache(item.userId, all.length ? all : [saved]);
 

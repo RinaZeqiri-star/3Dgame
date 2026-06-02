@@ -5,17 +5,27 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getAvatarModel } from "../utils/avatarModels";
+import { getClothingModel } from "../utils/clothingModels";
+import { getHairstyle } from "../utils/hairstyles";
+
+import type { EquippedItem } from "../utils/outfitStorage";
 
 type PoseMode = "rest" | "aPose";
+
+
+export type EquippedClothing = EquippedItem;
 
 type AvatarViewerProps = {
 	skinColor?: string | null;
 	eyeColor?: string | null;
 	hairColor?: string | null;
 	hasHair?: boolean;
+	hairstyleId?: string | null;
 	backgroundColor?: string | null;
 	verticalFraming?: number;
 	poseMode?: PoseMode;
+	outfit?: EquippedClothing[];
+	spin?: boolean;
 };
 
 const DEFAULT_SKIN = "#E8C9A7";
@@ -79,7 +89,9 @@ function disposeObject(node: THREE.Object3D | null) {
 	});
 }
 
-const ARM_DROP_RAD = 1.2;
+
+const ARM_DROP_RAD = 0.2; 
+const ELBOW_BEND_RAD = 1.1; 
 
 function sideForUpperArmBone(boneName: string): "left" | "right" | null {
 	const n = boneName.toLowerCase();
@@ -95,22 +107,49 @@ function sideForUpperArmBone(boneName: string): "left" | "right" | null {
 	return null;
 }
 
+function sideForLowerArmBone(boneName: string): "left" | "right" | null {
+	const n = boneName.toLowerCase();
+
+	if (!/lowerarm|lower_arm|forearm/.test(n)) return null;
+
+	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
+	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+
+	if (isLeft && !isRight) return "left";
+	if (isRight && !isLeft) return "right";
+	return null;
+}
+
 function rankArmBone(name: string): number {
 	if (/upperarm|upper_arm/i.test(name)) return 3;
 	if (/(^|[._])arm($|[._])/i.test(name)) return 2;
 	return 1;
 }
 
-export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair = false, backgroundColor = "#FFFFFF", verticalFraming = 0, poseMode = "rest" }: AvatarViewerProps) {
+export default function AvatarViewer({
+	skinColor,
+	eyeColor,
+	hairColor,
+	hasHair = false,
+	hairstyleId,
+	backgroundColor = "#FFFFFF",
+	verticalFraming = 0,
+	poseMode = "rest",
+	outfit = [],
+	spin = false,
+}: AvatarViewerProps) {
 	const isTransparent = backgroundColor === null;
 	const requestRef = useRef<number | null>(null);
 	const bodyRef = useRef<THREE.Object3D | null>(null);
 	const hairRef = useRef<THREE.Object3D | null>(null);
+	const avatarGroupRef = useRef<THREE.Group | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
 	const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 	const rendererRef = useRef<Renderer | null>(null);
 	const glRef = useRef<any>(null);
 	const meshKindsRef = useRef<Map<string, MeshKind>>(new Map());
+	const spinRef = useRef<boolean>(spin);
+	spinRef.current = spin;
 
 	const onContextCreate = async (gl: any) => {
 		const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
@@ -140,8 +179,10 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 		directionalLight.position.set(2, 4, 3);
 		scene.add(directionalLight);
 
+		const hairstyle = getHairstyle(hairstyleId);
+
 		const bodyAsset = Asset.fromModule(getAvatarModel("body"));
-		const hairAsset = Asset.fromModule(getAvatarModel("hair"));
+		const hairAsset = Asset.fromModule(hairstyle.model);
 		await Promise.all([bodyAsset.downloadAsync(), hairAsset.downloadAsync()]);
 
 		const loader = new GLTFLoader();
@@ -189,8 +230,20 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 				});
 			});
 
+		
+			const hairMeshesToRemove: any[] = [];
 			hairGltf.scene.traverse((child: any) => {
 				if (!child.isMesh) return;
+
+				if (hairstyle.needsFilter) {
+					const matName = (Array.isArray(child.material) ? child.material[0]?.name : child.material?.name) || "";
+					const isHairMesh = /_HAIR(\s|$)/i.test(matName);
+					if (!isHairMesh) {
+						hairMeshesToRemove.push(child);
+						return;
+					}
+				}
+
 				child.material = new THREE.MeshStandardMaterial({
 					color: new THREE.Color(currentHair),
 					roughness: 0.65,
@@ -198,16 +251,32 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 				});
 			});
 
+			for (const m of hairMeshesToRemove) {
+				m.parent?.remove(m);
+			}
+
 			console.log("[AvatarViewer] body.glb meshes:\n" + collectedNames.join("\n"));
 
 			if (poseMode === "aPose") {
 				const boneNames: string[] = [];
 				let leftArmBone: THREE.Object3D | null = null;
 				let rightArmBone: THREE.Object3D | null = null;
+				let leftLowerArmBone: THREE.Object3D | null = null;
+				let rightLowerArmBone: THREE.Object3D | null = null;
 
 				bodyGltf.scene.traverse((node: any) => {
 					if (!node.isBone) return;
 					boneNames.push(node.name);
+
+					const lowerSide = sideForLowerArmBone(node.name);
+					if (lowerSide === "left") {
+						leftLowerArmBone = node;
+						return;
+					}
+					if (lowerSide === "right") {
+						rightLowerArmBone = node;
+						return;
+					}
 
 					const side = sideForUpperArmBone(node.name);
 					if (!side) return;
@@ -223,25 +292,32 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 					}
 				});
 
+				
 				if (leftArmBone) (leftArmBone as THREE.Object3D).rotation.z = -ARM_DROP_RAD;
 				if (rightArmBone) (rightArmBone as THREE.Object3D).rotation.z = ARM_DROP_RAD;
 
-				const leftName = leftArmBone ? (leftArmBone as THREE.Object3D).name : "(none)";
-				const rightName = rightArmBone ? (rightArmBone as THREE.Object3D).name : "(none)";
+				
+				if (leftLowerArmBone) (leftLowerArmBone as THREE.Object3D).rotation.x = ELBOW_BEND_RAD;
+				if (rightLowerArmBone) (rightLowerArmBone as THREE.Object3D).rotation.x = ELBOW_BEND_RAD;
+
+				const leftUpperName = leftArmBone ? (leftArmBone as THREE.Object3D).name : "(none)";
+				const rightUpperName = rightArmBone ? (rightArmBone as THREE.Object3D).name : "(none)";
+				const leftLowerName = leftLowerArmBone ? (leftLowerArmBone as THREE.Object3D).name : "(none)";
+				const rightLowerName = rightLowerArmBone ? (rightLowerArmBone as THREE.Object3D).name : "(none)";
 				console.log("[AvatarViewer] bones:", boneNames);
-				console.log("[AvatarViewer] aPose rotation applied — left:", leftName, "right:", rightName);
+				console.log("[AvatarViewer] aPose applied — upper L:", leftUpperName, "R:", rightUpperName, "lower L:", leftLowerName, "R:", rightLowerName);
 			}
 
 			const avatarGroup = new THREE.Group();
 			avatarGroup.add(bodyGltf.scene);
 			avatarGroup.add(hairGltf.scene);
 			scene.add(avatarGroup);
-
-			hairGltf.scene.visible = hasHair;
+			const hasHairItem = outfit.some((item) => item.category === "Hair");
+			hairGltf.scene.visible = hasHair && !hasHairItem;
 
 			bodyRef.current = bodyGltf.scene;
 			hairRef.current = hairGltf.scene;
-
+			avatarGroupRef.current = avatarGroup;
 			avatarGroup.updateMatrixWorld(true);
 
 			const box = new THREE.Box3().setFromObject(avatarGroup);
@@ -255,10 +331,114 @@ export default function AvatarViewer({ skinColor, eyeColor, hairColor, hasHair =
 			camera.position.set(center.x, center.y + size.y * verticalFraming, center.z + frameDim * 2.0);
 			camera.lookAt(lookTarget);
 
+			
+			const bodyBoneMap = new Map<string, THREE.Bone>();
+			bodyGltf.scene.traverse((node: any) => {
+				if (node.isBone) bodyBoneMap.set(node.name, node);
+			});
+			if (outfit.length > 0) {
+				await Promise.all(
+					outfit.map(async (item) => {
+						try {
+							const clothingAsset = Asset.fromModule(getClothingModel(item.clothingId));
+							await clothingAsset.downloadAsync();
+							const clothingGltf = await loadAsync(clothingAsset.localUri || clothingAsset.uri);
+
+							const colorHex = typeof item.color === "string" && item.color.length > 0 ? item.color : "#FFFFFF";
+
+							let meshCount = 0;
+							let reboundCount = 0;
+							let skippedBodyParts = 0;
+							const skinnedToRebind: any[] = [];
+							const meshesToRemove: any[] = [];
+
+							const isHairCategory = item.category === "Hair";
+							const shouldSkipMesh = (matName: string): boolean => {
+								if (isHairCategory) {
+									return !/_HAIR(\s|$)/i.test(matName);
+								}
+								return /_(SKIN|FACE|EYE|HAIR)(\s|$)/i.test(matName);
+							};
+
+							clothingGltf.scene.traverse((node: any) => {
+								if (!node.isMesh) return;
+								if (!node.geometry) return;
+
+								const meshName = node.name || "";
+								const matName = (Array.isArray(node.material) ? node.material[0]?.name : node.material?.name) || "";
+
+								const isCharacterPart = shouldSkipMesh(matName);
+
+								console.log(`[AvatarViewer]   ${item.clothingId} (${item.category}) mesh "${meshName}" mat "${matName}" -> ${isCharacterPart ? "SKIP" : "KEEP"}`);
+
+								if (isCharacterPart) {
+									meshesToRemove.push(node);
+									skippedBodyParts += 1;
+									return;
+								}
+
+								if (!node.geometry.attributes.normal) {
+									node.geometry.computeVertexNormals();
+								}
+
+								node.material = new THREE.MeshStandardMaterial({
+									color: new THREE.Color(colorHex),
+									roughness: 0.7,
+									metalness: 0.0,
+								});
+
+								meshCount += 1;
+
+								if (node.isSkinnedMesh && node.skeleton) {
+									skinnedToRebind.push(node);
+								}
+							});
+
+							
+							for (const m of meshesToRemove) {
+								m.parent?.remove(m);
+							}
+
+							
+							for (const skinnedMesh of skinnedToRebind) {
+								const originalBones: any[] = skinnedMesh.skeleton.bones;
+								const remapped: THREE.Bone[] = originalBones.map((bone) => {
+									const match = bodyBoneMap.get(bone.name);
+									if (match) reboundCount += 1;
+									return match ?? bone;
+								});
+
+								const newSkeleton = new THREE.Skeleton(remapped, skinnedMesh.skeleton.boneInverses);
+								skinnedMesh.bind(newSkeleton, skinnedMesh.bindMatrix);
+							}
+
+							avatarGroup.add(clothingGltf.scene);
+							console.log("[AvatarViewer] loaded clothing", item.clothingId, "meshes:", meshCount, "skipped body parts:", skippedBodyParts, "skinned-bones rebound:", reboundCount);
+						} catch (clothingError) {
+							console.log("[AvatarViewer] clothing load failed for", item.clothingId, clothingError);
+						}
+					}),
+				);
+			}
+
+			let loggedRenderError = false;
 			const animate = () => {
 				requestRef.current = requestAnimationFrame(animate);
-				renderer.render(scene, camera);
-				gl.endFrameEXP();
+
+				
+				if (spinRef.current && avatarGroupRef.current) {
+					avatarGroupRef.current.rotation.y += 0.01;
+				}
+
+				try {
+					renderer.render(scene, camera);
+					gl.endFrameEXP();
+				} catch (renderError) {
+					if (!loggedRenderError) {
+						loggedRenderError = true;
+						console.log("[AvatarViewer] render error (silencing further):", renderError);
+					}
+				}
 			};
 
 			animate();
