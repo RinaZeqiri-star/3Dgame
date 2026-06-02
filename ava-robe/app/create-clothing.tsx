@@ -24,7 +24,7 @@ type Fabric = {
 	color: string;
 };
 
-const categories = ["T-shirt", "Sweaters", "Pants", "Skirts", "Jackets", "Dresses", "Shoes"];
+const categories = ["T-shirt", "Sweaters", "Pants", "Skirts", "Jackets", "Dresses", "Shoes", "Accessories"];
 
 const clothingItems: ClothingItem[] = [
 	{
@@ -70,10 +70,62 @@ const clothingItems: ClothingItem[] = [
 	{
 		id: "boots",
 		category: "Shoes",
-		// TODO: replace with a boot-specific preview once available
 		preview: require("../assets/images/clothes/shoes9.png"),
 		model: null,
 	},
+
+	// --- Newly added items (all use placeholder previews; the grid renders the actual 3D model via ClothingViewer anyway) ---
+
+	// T-shirt
+	{ id: "chemise", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "shortsleeve-chemise", category: "T-shirt", preview: require("../assets/images/clothes/blouse4.png"), model: null },
+	{ id: "haltertop", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "hawaiian-tshirt", category: "T-shirt", preview: require("../assets/images/clothes/longsleve1.png"), model: null },
+	{ id: "off-shoulder-top", category: "T-shirt", preview: require("../assets/images/clothes/blouse4.png"), model: null },
+	{ id: "tanktop", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "workouttop", category: "T-shirt", preview: require("../assets/images/clothes/blouse4.png"), model: null },
+
+	// Sweaters
+	{ id: "cardigan", category: "Sweaters", preview: require("../assets/images/clothes/longsleve5.png"), model: null },
+	{ id: "cropped-sweater", category: "Sweaters", preview: require("../assets/images/clothes/longsleve6.png"), model: null },
+	{ id: "long-sweater", category: "Sweaters", preview: require("../assets/images/clothes/longsleve5.png"), model: null },
+	{ id: "zipup", category: "Sweaters", preview: require("../assets/images/clothes/jacekt1.png"), model: null },
+	{ id: "fleece-croptop", category: "Sweaters", preview: require("../assets/images/clothes/longsleve6.png"), model: null },
+
+	// Dresses
+	{ id: "casual-dress", category: "Dresses", preview: require("../assets/images/clothes/dress1.png"), model: null },
+	{ id: "cute-dress", category: "Dresses", preview: require("../assets/images/clothes/dress11.png"), model: null },
+	{ id: "fancy-dress", category: "Dresses", preview: require("../assets/images/clothes/dress12.png"), model: null },
+	{ id: "sleeveless-dress", category: "Dresses", preview: require("../assets/images/clothes/dress15.png"), model: null },
+	{ id: "straps-dress", category: "Dresses", preview: require("../assets/images/clothes/dress1.png"), model: null },
+	{ id: "summer-dress", category: "Dresses", preview: require("../assets/images/clothes/dress11.png"), model: null },
+	{ id: "very-fancy-dress", category: "Dresses", preview: require("../assets/images/clothes/dress12.png"), model: null },
+
+	// Pants
+	{ id: "bikershorts", category: "Pants", preview: require("../assets/images/clothes/skirts4.png"), model: null },
+	{ id: "classy-pants", category: "Pants", preview: require("../assets/images/clothes/skirts3.png"), model: null },
+	{ id: "jean-shorts", category: "Pants", preview: require("../assets/images/clothes/skirts5.png"), model: null },
+	{ id: "leggings", category: "Pants", preview: require("../assets/images/clothes/skirts3.png"), model: null },
+
+	// Skirts
+	{ id: "long-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts3.png"), model: null },
+	{ id: "mini-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts4.png"), model: null },
+	{ id: "school-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts5.png"), model: null },
+
+	// Shoes
+	{ id: "fancy-shoes", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+	{ id: "heelboots", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+	{ id: "heels", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+	{ id: "longboots", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+	{ id: "over-knee-boots", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+	{ id: "sandals", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
+
+	// Accessories
+	{ id: "little-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "pink-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "necklace", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "ribbon", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
+	{ id: "longsocks", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 ];
 
 const colors = ["#FF6B6B", "#FFB347", "#FFD93D", "#6BCB77", "#4D96FF", "#9B59B6", "#FF85A2", "#1E1E1E", "#8B4513", "#F5E6CC", "#2ECC71", "#E74C3C", "#3498DB", "#F39C12", "#95A5A6"];

@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getAvatarModel } from "../utils/avatarModels";
+import { getBody } from "../utils/bodies";
 import { getClothingModel } from "../utils/clothingModels";
 import { getHairstyle } from "../utils/hairstyles";
 
@@ -21,6 +22,8 @@ type AvatarViewerProps = {
 	hairColor?: string | null;
 	hasHair?: boolean;
 	hairstyleId?: string | null;
+	// Selected body type id from utils/bodies.ts. Defaults to "default".
+	bodyId?: string | null;
 	backgroundColor?: string | null;
 	verticalFraming?: number;
 	poseMode?: PoseMode;
@@ -126,12 +129,44 @@ function rankArmBone(name: string): number {
 	return 1;
 }
 
+// Clothing ids that should trigger a foot tilt so the heels sit on the foot
+// correctly (high heels are authored assuming the foot is angled downward).
+const HEELS_CLOTHING_IDS = new Set(["heels", "heelboots"]);
+const HEEL_TILT_RAD = 0.5; // ~28°
+
+// Tall boots are exported from VRoid as shaft-only meshes — the foot "inside"
+// was actually the character's body skin (which our filter strips). With the
+// shaft alone, body.glb's bare feet poke out below. Shrink the body's foot
+// bones so the foot mesh collapses out of sight inside the boot shaft.
+const TALL_BOOTS_CLOTHING_IDS = new Set(["longboots", "over-knee-boots"]);
+const FOOT_HIDE_SCALE = 0.05;
+
+// Inflate shoe geometry vertically so the shoe top reaches the leg/ankle
+// and the bottom extends a bit lower — closes the gap between the shoe and
+// the body's foot/leg that you can otherwise see (especially on heels).
+const SHOE_Y_SCALE = 1.25;
+
+function sideForFootBone(boneName: string): "left" | "right" | null {
+	const n = boneName.toLowerCase();
+
+	// Match the foot bone but NOT the toe bone (J_Bip_*_ToeBase).
+	if (!/foot/.test(n) || /toe/.test(n)) return null;
+
+	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
+	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+
+	if (isLeft && !isRight) return "left";
+	if (isRight && !isLeft) return "right";
+	return null;
+}
+
 export default function AvatarViewer({
 	skinColor,
 	eyeColor,
 	hairColor,
 	hasHair = false,
 	hairstyleId,
+	bodyId,
 	backgroundColor = "#FFFFFF",
 	verticalFraming = 0,
 	poseMode = "rest",
@@ -180,8 +215,9 @@ export default function AvatarViewer({
 		scene.add(directionalLight);
 
 		const hairstyle = getHairstyle(hairstyleId);
+		const body = getBody(bodyId);
 
-		const bodyAsset = Asset.fromModule(getAvatarModel("body"));
+		const bodyAsset = Asset.fromModule(body.model);
 		const hairAsset = Asset.fromModule(hairstyle.model);
 		await Promise.all([bodyAsset.downloadAsync(), hairAsset.downloadAsync()]);
 
@@ -308,6 +344,38 @@ export default function AvatarViewer({
 				console.log("[AvatarViewer] aPose applied — upper L:", leftUpperName, "R:", rightUpperName, "lower L:", leftLowerName, "R:", rightLowerName);
 			}
 
+			// Heels in VRoid are authored assuming the foot is tilted downward.
+			// When we rebind the shoe skinning to the body's neutral foot bone,
+			// the heel ends up sticking out at the wrong angle. If any equipped
+			// shoe is a heels type, tilt the foot bones to match the shoe's
+			// authored angle.
+			const hasHeels = outfit.some((item) => HEELS_CLOTHING_IDS.has(item.clothingId));
+			const hasTallBoots = outfit.some((item) => TALL_BOOTS_CLOTHING_IDS.has(item.clothingId));
+
+			if (hasHeels || hasTallBoots) {
+				let leftFootBone: THREE.Object3D | null = null;
+				let rightFootBone: THREE.Object3D | null = null;
+
+				bodyGltf.scene.traverse((node: any) => {
+					if (!node.isBone) return;
+					const side = sideForFootBone(node.name);
+					if (side === "left") leftFootBone = node;
+					if (side === "right") rightFootBone = node;
+				});
+
+				if (hasHeels) {
+					if (leftFootBone) (leftFootBone as THREE.Object3D).rotation.x = HEEL_TILT_RAD;
+					if (rightFootBone) (rightFootBone as THREE.Object3D).rotation.x = HEEL_TILT_RAD;
+					console.log("[AvatarViewer] heels — feet tilted");
+				}
+
+				if (hasTallBoots) {
+					if (leftFootBone) (leftFootBone as THREE.Object3D).scale.setScalar(FOOT_HIDE_SCALE);
+					if (rightFootBone) (rightFootBone as THREE.Object3D).scale.setScalar(FOOT_HIDE_SCALE);
+					console.log("[AvatarViewer] tall boots — body feet hidden");
+				}
+			}
+
 			const avatarGroup = new THREE.Group();
 			avatarGroup.add(bodyGltf.scene);
 			avatarGroup.add(hairGltf.scene);
@@ -410,6 +478,16 @@ export default function AvatarViewer({
 
 								const newSkeleton = new THREE.Skeleton(remapped, skinnedMesh.skeleton.boneInverses);
 								skinnedMesh.bind(newSkeleton, skinnedMesh.bindMatrix);
+							}
+
+							// Shoes-category items get a vertical scale-up so the shoe
+							// top reaches the leg/ankle (closes the visible gap that
+							// otherwise appears between the body and the shoe).
+							if (item.category === "Shoes") {
+								clothingGltf.scene.traverse((node: any) => {
+									if (!node.isMesh || !node.geometry) return;
+									node.geometry.scale(1, SHOE_Y_SCALE, 1);
+								});
 							}
 
 							avatarGroup.add(clothingGltf.scene);

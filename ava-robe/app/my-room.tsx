@@ -14,6 +14,7 @@ type SavedAvatar = {
 	hairColor: string | null;
 	hasHair: boolean;
 	hairstyleId: string | null;
+	bodyId: string | null;
 };
 
 const EMPTY_AVATAR: SavedAvatar = {
@@ -22,6 +23,7 @@ const EMPTY_AVATAR: SavedAvatar = {
 	hairColor: null,
 	hasHair: false,
 	hairstyleId: null,
+	bodyId: null,
 };
 
 export default function MyRoomScreen() {
@@ -56,6 +58,7 @@ export default function MyRoomScreen() {
 					hairColor: user.hairColor ?? null,
 					hasHair: typeof user.hasHair === "boolean" ? user.hasHair : false,
 					hairstyleId: user.hairstyleId ?? null,
+					bodyId: user.bodyId ?? null,
 				};
 
 				setAvatar(savedAvatar);
@@ -83,7 +86,7 @@ export default function MyRoomScreen() {
 		}, []),
 	);
 
-	const viewerKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${outfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, outfit]);
+	const viewerKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${avatar.bodyId ?? "default"}|${outfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, avatar.bodyId, outfit]);
 
 	return (
 		<ImageBackground source={backgroundSource} style={styles.screen} resizeMode="cover">
@@ -99,7 +102,7 @@ export default function MyRoomScreen() {
 			<View style={styles.avatarStage} pointerEvents="none">
 				{hasSavedAvatar ? (
 					// poseMode "rest" = use the pose baked into the asset (we don't rotate bones at runtime).
-					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} backgroundColor={null} verticalFraming={0.08} poseMode="rest" outfit={outfit} />
+					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} bodyId={avatar.bodyId} backgroundColor={null} verticalFraming={0.08} poseMode="rest" outfit={outfit} />
 				) : (
 					<View style={styles.avatarPlaceholder}>
 						<Text style={styles.placeholderText}>Save your avatar to see it here</Text>

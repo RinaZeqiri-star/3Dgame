@@ -1,5 +1,6 @@
 import AvatarViewer from "@/components/AvatarViewer";
 import ClothingViewer from "@/components/ClothingViewer";
+import { getBodyList } from "@/utils/bodies";
 import { getHairstyleList } from "@/utils/hairstyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -13,8 +14,9 @@ const EYE_COLORS = ["#6F4E37", "#1C3A57", "#2E5E2E", "#B8956A", "#1C1C1C"];
 const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#D4B26A", "#8B3A2C"];
 
 const HAIRSTYLES = getHairstyleList();
+const BODIES = getBodyList();
 
-type Tab = "skin" | "eyes" | "hair";
+type Tab = "skin" | "eyes" | "hair" | "body";
 
 export default function AvatarScreen() {
 	const router = useRouter();
@@ -24,6 +26,7 @@ export default function AvatarScreen() {
 	const [hairColor, setHairColor] = useState<string>(HAIR_COLORS[0]);
 	const [hasHair, setHasHair] = useState<boolean>(false);
 	const [hairstyleId, setHairstyleId] = useState<string>("default");
+	const [bodyId, setBodyId] = useState<string>("default");
 	const [activeTab, setActiveTab] = useState<Tab>("skin");
 
 	useEffect(() => {
@@ -37,6 +40,7 @@ export default function AvatarScreen() {
 			if (user.hairColor) setHairColor(user.hairColor);
 			if (typeof user.hasHair === "boolean") setHasHair(user.hasHair);
 			if (user.hairstyleId) setHairstyleId(user.hairstyleId);
+			if (user.bodyId) setBodyId(user.bodyId);
 		};
 
 		loadStoredColors();
@@ -52,7 +56,7 @@ export default function AvatarScreen() {
 			}
 
 			const user = JSON.parse(storedUser);
-			const updatedUser = { ...user, skinColor, eyeColor, hairColor, hasHair, hairstyleId };
+			const updatedUser = { ...user, skinColor, eyeColor, hairColor, hasHair, hairstyleId, bodyId };
 
 			await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -76,7 +80,14 @@ export default function AvatarScreen() {
 		}
 	};
 
-	const helperText = activeTab === "skin" ? "Pick your skin tone" : activeTab === "eyes" ? "Pick your eye color" : "Pick your hair color";
+	const helperText =
+		activeTab === "skin"
+			? "Pick your skin tone"
+			: activeTab === "eyes"
+				? "Pick your eye color"
+				: activeTab === "hair"
+					? "Pick your hair color"
+					: "Pick your body type";
 
 	return (
 		<View style={styles.screen}>
@@ -85,12 +96,12 @@ export default function AvatarScreen() {
 			</Pressable>
 
 			<View style={styles.viewerArea}>
-				{/* key remount on hairstyle change so the new GLB actually loads. */}
-				<AvatarViewer key={hairstyleId} skinColor={skinColor} eyeColor={eyeColor} hairColor={hairColor} hasHair={hasHair} hairstyleId={hairstyleId} backgroundColor={SCREEN_BG} />
+				{/* key remount on hairstyle or body change so the new GLBs actually load. */}
+				<AvatarViewer key={`${hairstyleId}|${bodyId}`} skinColor={skinColor} eyeColor={eyeColor} hairColor={hairColor} hasHair={hasHair} hairstyleId={hairstyleId} bodyId={bodyId} backgroundColor={SCREEN_BG} />
 			</View>
 
 			<View style={styles.swatchColumn}>
-				{activeColors.map((color) => {
+				{activeTab === "body" ? null : activeColors.map((color) => {
 					const isSelected = color === activeSelected;
 
 					return (
@@ -119,6 +130,11 @@ export default function AvatarScreen() {
 						<Text style={[styles.tabText, activeTab === "hair" && styles.activeTabText]}>Hair</Text>
 						{activeTab === "hair" ? <View style={styles.tabIndicator} /> : null}
 					</Pressable>
+
+					<Pressable style={styles.tab} onPress={() => setActiveTab("body")}>
+						<Text style={[styles.tabText, activeTab === "body" && styles.activeTabText]}>Body</Text>
+						{activeTab === "body" ? <View style={styles.tabIndicator} /> : null}
+					</Pressable>
 				</View>
 
 				<Text style={styles.helperText}>{helperText}</Text>
@@ -143,6 +159,23 @@ export default function AvatarScreen() {
 							<Text style={styles.hairToggleText}>{hasHair ? "Remove hair" : "Put on hair"}</Text>
 						</Pressable>
 					</>
+				) : null}
+
+				{activeTab === "body" ? (
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hairstyleRow}>
+						{BODIES.map((body) => {
+							const isSelected = bodyId === body.id;
+							return (
+								<Pressable key={body.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setBodyId(body.id)}>
+									<View style={styles.hairstylePreview} pointerEvents="none">
+										{/* Body GLBs have face/eyes/etc., but the clothing filter strips face/eye/hair anyway and keeps _SKIN, which is what we want for a body silhouette preview. */}
+										<ClothingViewer modelAsset={body.model} color={skinColor} previewMode />
+									</View>
+									<Text style={[styles.hairstyleText, isSelected && styles.hairstyleTextSelected]}>{body.name}</Text>
+								</Pressable>
+							);
+						})}
+					</ScrollView>
 				) : null}
 			</View>
 		</View>

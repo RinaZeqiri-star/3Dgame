@@ -6,7 +6,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-const categories = ["T-shirt", "Jackets", "Sweaters", "Pants", "Dress", "Skirts", "Accessories", "Shoes"];
+const categories = ["T-shirt", "Sweaters", "Jackets", "Pants", "Skirts", "Dresses", "Shoes", "Accessories"];
 
 const DESIGN_PREVIEW_RATIO = 42 / 75;
 
