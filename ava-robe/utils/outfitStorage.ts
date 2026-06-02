@@ -40,10 +40,22 @@ export async function setOutfit(userId: string, items: EquippedItem[]): Promise<
 		color: item.color,
 	}));
 
+	const payload = JSON.stringify(minimal);
+
 	try {
-		await AsyncStorage.setItem(outfitKey(userId), JSON.stringify(minimal));
+		await AsyncStorage.setItem(outfitKey(userId), payload);
 	} catch (err) {
-		console.log("setOutfit error:", err);
+		console.log("setOutfit error — clearing clothes cache and retrying:", err);
+
+		// localStorage on web is quota-limited (~5MB). The clothes cache
+		// is the usual culprit. Drop it (it's a server-backed fallback)
+		// and try the outfit write again.
+		try {
+			await AsyncStorage.removeItem(`clothesCache_${userId}`);
+			await AsyncStorage.setItem(outfitKey(userId), payload);
+		} catch (retryErr) {
+			console.log("setOutfit retry failed:", retryErr);
+		}
 	}
 }
 

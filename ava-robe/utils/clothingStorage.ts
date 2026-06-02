@@ -39,9 +39,23 @@ function normalizeClothing(doc: any): SavedClothing {
 const cacheKey = (userId: string) => `clothesCache_${userId}`;
 
 async function writeCache(userId: string, items: SavedClothing[]): Promise<void> {
+	// Strip the heavy base64 image fields — they blow past localStorage's
+	// ~5MB quota on web after a handful of items. The cache is only an
+	// offline metadata fallback; live image data comes from the server.
+	const lean = items.map((it) => ({
+		...it,
+		snapshotImage: null,
+		designImage: null,
+	}));
+
 	try {
-		await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(items));
-	} catch {}
+		await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(lean));
+	} catch (err) {
+		console.log("writeCache error (likely over quota) — clearing cache:", err);
+		try {
+			await AsyncStorage.removeItem(cacheKey(userId));
+		} catch {}
+	}
 }
 
 async function readCache(userId: string): Promise<SavedClothing[]> {
@@ -113,6 +127,47 @@ export async function updateClothing(userId: string, itemId: string, updates: Pa
 	await writeCache(userId, all);
 
 	return updated;
+}
+
+export async function incrementTimesWorn(userId: string, itemIds: string[]): Promise<void> {
+	if (!userId || itemIds.length === 0) return;
+
+	const all = await getSavedClothes(userId).catch(() => [] as SavedClothing[]);
+	const byId = new Map(all.map((c) => [c.id, c]));
+	const updatedList: SavedClothing[] = [...all];
+
+	await Promise.all(
+		itemIds.map(async (id) => {
+			const current = byId.get(id);
+			if (!current) return;
+
+			const nextCount = (current.timesWorn ?? 0) + 1;
+
+			try {
+				const response = await fetch(`${API_URL}/clothes/${id}`, {
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ timesWorn: nextCount }),
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					const idx = updatedList.findIndex((c) => c.id === id);
+					if (idx !== -1 && data?.clothing) {
+						updatedList[idx] = normalizeClothing(data.clothing);
+					}
+				}
+			} catch (err) {
+				console.log("incrementTimesWorn error for", id, err);
+				const idx = updatedList.findIndex((c) => c.id === id);
+				if (idx !== -1) {
+					updatedList[idx] = { ...updatedList[idx], timesWorn: nextCount };
+				}
+			}
+		}),
+	);
+
+	await writeCache(userId, updatedList);
 }
 
 export async function getClothingById(userId: string, itemId: string): Promise<SavedClothing | null> {

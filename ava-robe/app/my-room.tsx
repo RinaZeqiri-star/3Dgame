@@ -37,6 +37,7 @@ export default function MyRoomScreen() {
 
 	useFocusEffect(
 		useCallback(() => {
+			console.log("[my-room] focus effect fired — reloading user + outfit");
 			const loadUser = async () => {
 				const storedUser = await AsyncStorage.getItem("user");
 
@@ -67,6 +68,7 @@ export default function MyRoomScreen() {
 				const uid = user._id || user.id;
 				if (uid) {
 					const loadedOutfit = await getOutfit(uid);
+					console.log("[my-room] loaded outfit for uid", uid, "items:", loadedOutfit);
 					setOutfitState(loadedOutfit);
 				}
 
@@ -131,9 +133,15 @@ export default function MyRoomScreen() {
 					<Text style={styles.ecoLabel}>Water usage</Text>
 				</View>
 
-				<Pressable style={styles.addOutfitButton} onPress={() => router.push("/wardrobe2?outfitMode=true")}>
-					<Text style={styles.addOutfitText}>Add outfit</Text>
-				</Pressable>
+				<View style={styles.buttonRow}>
+					<Pressable style={styles.outfitButton} onPress={() => router.push("/wardrobe2?outfitMode=true")}>
+						<Text style={styles.outfitButtonText}>Add outfit</Text>
+					</Pressable>
+
+					<Pressable style={styles.outfitButton} onPress={() => router.push("/recommend-outfit")}>
+						<Text style={styles.outfitButtonText}>Suggest outfit</Text>
+					</Pressable>
+				</View>
 			</View>
 		</ImageBackground>
 	);
@@ -266,14 +274,19 @@ const styles = StyleSheet.create({
 		marginLeft: 32,
 	},
 
-	addOutfitButton: {
+	buttonRow: {
+		flexDirection: "row",
+		gap: 12,
+		paddingHorizontal: 4,
+	},
+
+	outfitButton: {
+		flex: 1,
 		backgroundColor: "#FFFFFF",
 		borderWidth: 1.5,
 		borderColor: "#000000",
 		borderRadius: 12,
 		height: 54,
-		width: "82%",
-		alignSelf: "center",
 		alignItems: "center",
 		justifyContent: "center",
 		shadowColor: "#000",
@@ -283,10 +296,10 @@ const styles = StyleSheet.create({
 		elevation: 3,
 	},
 
-	addOutfitText: {
-		fontSize: 17,
+	outfitButtonText: {
+		fontSize: 15,
 		color: "#000000",
-		letterSpacing: 1,
+		letterSpacing: 0.5,
 		textAlign: "center",
 		fontWeight: "700",
 	},

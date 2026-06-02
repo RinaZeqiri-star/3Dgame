@@ -404,6 +404,7 @@ export default function AvatarViewer({
 			bodyGltf.scene.traverse((node: any) => {
 				if (node.isBone) bodyBoneMap.set(node.name, node);
 			});
+			console.log("[AvatarViewer] mounted with outfit length:", outfit.length, "items:", outfit.map((it) => `${it.category}/${it.clothingId}`));
 			if (outfit.length > 0) {
 				await Promise.all(
 					outfit.map(async (item) => {
