@@ -284,53 +284,59 @@ app.post("/upload-recycle-media", upload.array("media", 20), (req, res) => {
 	}
 });
 
+// Lazy-load the model — saves boot time. First call downloads & caches the
+// model (~30 MB) under node_modules/@imgly/background-removal-node, after
+// that it's instant.
+let removeBgLocal = null;
+async function getRemoveBg() {
+	if (!removeBgLocal) {
+		const mod = await import("@imgly/background-removal-node");
+		removeBgLocal = mod.removeBackground;
+	}
+	return removeBgLocal;
+}
+
 app.post("/remove-background", upload.single("image"), async (req, res) => {
+	const filePath = req.file?.path;
+
 	try {
 		console.log("Remove background route called");
 
 		if (!req.file) {
-			return res.status(400).json({
-				error: "No image uploaded",
-			});
+			return res.status(400).json({ error: "No image uploaded" });
 		}
 
-		if (!process.env.REMOVE_BG_API_KEY) {
-			return res.status(500).json({
-				error: "REMOVE_BG_API_KEY is missing",
-			});
-		}
+		// Run locally on the server with @imgly/background-removal-node.
+		// No API key, no quota, no internet needed after the first run.
+		const removeBg = await getRemoveBg();
+		const cleanedBlob = await removeBg(filePath);
+		const buffer = Buffer.from(await cleanedBlob.arrayBuffer());
 
-		const formData = new FormData();
-
-		formData.append("image_file", fs.createReadStream(req.file.path));
-
-		formData.append("size", "auto");
-
-		const response = await axios.post("https://api.remove.bg/v1.0/removebg", formData, {
-			headers: {
-				...formData.getHeaders(),
-				"X-Api-Key": process.env.REMOVE_BG_API_KEY,
-			},
-			responseType: "arraybuffer",
-		});
-
-		fs.unlinkSync(req.file.path);
+		fs.unlinkSync(filePath);
 
 		res.set("Content-Type", "image/png");
-
-		res.send(response.data);
+		res.set("X-Background-Removed", "true");
+		res.send(buffer);
 	} catch (err) {
-		console.log("REMOVE BG ERROR:");
+		console.log("=== REMOVE BG ERROR ===");
+		console.log(err.message);
+		console.log(err.stack);
+		console.log("=======================");
 
-		console.log(err.response?.data?.toString() || err.message);
-
-		if (req.file) {
-			fs.unlinkSync(req.file.path);
+		// Fallback: return the original image so the user's flow doesn't break.
+		try {
+			if (filePath && fs.existsSync(filePath)) {
+				const original = fs.readFileSync(filePath);
+				fs.unlinkSync(filePath);
+				res.set("Content-Type", req.file?.mimetype || "image/jpeg");
+				res.set("X-Background-Removed", "false");
+				return res.send(original);
+			}
+		} catch (fallbackErr) {
+			console.log("[remove-background] fallback failed:", fallbackErr.message);
 		}
 
-		res.status(500).json({
-			error: "Background removal failed",
-		});
+		res.status(500).json({ error: "Background removal failed" });
 	}
 });
 

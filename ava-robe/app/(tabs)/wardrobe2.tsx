@@ -268,7 +268,11 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		width: 42,
 		height: 42,
-		top: 68,
+		// Positioned over the chest area of the clothing snapshot.
+		// (was top: 68 — pushed the design below the t-shirt in the card)
+		top: 30,
+		left: "50%",
+		marginLeft: -21,
 		zIndex: 3,
 	},
 

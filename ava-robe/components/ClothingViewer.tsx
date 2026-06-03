@@ -17,8 +17,6 @@ type ClothingViewerProps = {
 	fabric?: FabricKind | null;
 };
 
-// Per-fabric material properties — gives each fabric a distinct look on the
-// 3D model even without bitmap textures (cotton matte, silk shiny, etc.).
 const FABRIC_PROPS: Record<FabricKind, { roughness: number; metalness: number }> = {
 	cotton: { roughness: 0.95, metalness: 0.0 },
 	silk: { roughness: 0.2, metalness: 0.15 },
@@ -29,6 +27,55 @@ const FABRIC_PROPS: Record<FabricKind, { roughness: number; metalness: number }>
 function fabricMaterialProps(fabric: FabricKind | null | undefined) {
 	if (fabric && FABRIC_PROPS[fabric]) return FABRIC_PROPS[fabric];
 	return { roughness: 0.7, metalness: 0.0 };
+}
+
+const FABRIC_TEXTURE_SIZE = 64;
+const fabricTextureCache: Partial<Record<FabricKind, THREE.DataTexture>> = {};
+
+function buildFabricTexture(fabric: FabricKind): THREE.DataTexture {
+	const size = FABRIC_TEXTURE_SIZE;
+	const data = new Uint8Array(size * size * 4);
+
+	for (let y = 0; y < size; y++) {
+		for (let x = 0; x < size; x++) {
+			const i = (y * size + x) * 4;
+			let v = 220;
+
+			if (fabric === "denim") {
+				const diag = (x + y) % 4;
+				v = diag < 2 ? 235 : 170;
+			} else if (fabric === "velvet") {
+				v = 200 - Math.floor(Math.random() * 55);
+			} else if (fabric === "silk") {
+				v = 225 + Math.floor(Math.sin(y * 0.6) * 25);
+			} else if (fabric === "cotton") {
+				v = 240 - Math.floor(Math.random() * 18);
+			}
+
+			data[i] = v;
+			data[i + 1] = v;
+			data[i + 2] = v;
+			data[i + 3] = 255;
+		}
+	}
+
+	const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+	tex.wrapS = THREE.RepeatWrapping;
+	tex.wrapT = THREE.RepeatWrapping;
+	tex.repeat.set(8, 8);
+	tex.magFilter = THREE.LinearFilter;
+	tex.minFilter = THREE.LinearMipmapLinearFilter;
+	tex.generateMipmaps = true;
+	tex.needsUpdate = true;
+	return tex;
+}
+
+function getFabricTexture(fabric: FabricKind | null | undefined): THREE.DataTexture | null {
+	if (!fabric) return null;
+	if (!fabricTextureCache[fabric]) {
+		fabricTextureCache[fabric] = buildFabricTexture(fabric);
+	}
+	return fabricTextureCache[fabric] ?? null;
 }
 
 export type ClothingViewerHandle = {
@@ -97,52 +144,98 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 
 				model.scale.set(1, 1, 1);
 				const isHairCategory = category === "Hair";
-				const charPartMeshes: any[] = [];
+
+				const isCharacterMaterial = (matName: string): boolean => {
+					return /_(SKIN|FACE|EYE|HAIR)(\s|_|\.|$)/i.test(matName);
+				};
 
 				model.traverse((child: any) => {
 					if (!child.isMesh) return;
 
 					const matName = (Array.isArray(child.material) ? child.material[0]?.name : child.material?.name) || "";
-					const shouldSkip = isHairCategory ? !/_HAIR(\s|$)/i.test(matName) : /_(SKIN|FACE|EYE|HAIR)(\s|$)/i.test(matName);
 
-					if (shouldSkip) {
-						charPartMeshes.push(child);
+					const isCharPart = isHairCategory ? !/_HAIR(\s|_|\.|$)/i.test(matName) : isCharacterMaterial(matName);
+
+					if (isCharPart) {
+						child.visible = false;
+						child.userData._isCharacterPart = true;
 						return;
 					}
+
 					const fp = fabricMaterialProps(fabric);
+					const fabricMap = getFabricTexture(fabric);
 					child.material = new THREE.MeshStandardMaterial({
 						color: new THREE.Color(color || "#D9D9D9"),
 						roughness: fp.roughness,
 						metalness: fp.metalness,
+						map: fabricMap,
 					});
 				});
-
-				for (const m of charPartMeshes) {
-					m.parent?.remove(m);
-				}
 
 				scene.add(model);
 				modelRef.current = model;
 				model.updateMatrixWorld(true);
-				const box = new THREE.Box3().setFromObject(model);
-				const center = box.getCenter(new THREE.Vector3());
-				const size = box.getSize(new THREE.Vector3());
-				const maxDim = Math.max(size.x, size.y, size.z, 0.001);
 
-				
-				model.position.x -= center.x;
-				model.position.y -= center.y;
-				model.position.z -= center.z;
+				const CATEGORY_FRAMING: Record<string, { y: number; size: number }> = {
+					"T-shirt": { y: 1.22, size: 0.55 },
+					Sweaters: { y: 1.18, size: 0.65 },
+					Jackets: { y: 1.18, size: 0.65 },
+					Dresses: { y: 0.95, size: 1.2 },
+					Pants: { y: 0.5, size: 0.95 },
+					Skirts: { y: 0.65, size: 0.7 },
+					Shoes: { y: 0.18, size: 0.5 },
+					Accessories: { y: 1.3, size: 0.5 },
+					Hair: { y: 1.65, size: 0.4 },
+				};
 
-	
+				const ITEM_FRAMING: Record<string, { y: number; size: number }> = {
+					longsocks: { y: 0.4, size: 0.85 },
+					ribbon: { y: 1.65, size: 0.35 },
+				};
+
+				const box = new THREE.Box3();
+				model.traverse((child: any) => {
+					if (!child.isMesh || !child.visible) return;
+					if (child.userData._isCharacterPart) return;
+					const childBox = new THREE.Box3().setFromObject(child);
+					box.union(childBox);
+				});
+
+				const isEmpty = box.isEmpty();
+				const bboxCenter = isEmpty ? new THREE.Vector3(0, 1, 0) : box.getCenter(new THREE.Vector3());
+				const bboxSize = isEmpty ? new THREE.Vector3(0.5, 0.5, 0.5) : box.getSize(new THREE.Vector3());
+				const bboxMaxDim = Math.max(bboxSize.x, bboxSize.y, bboxSize.z, 0.001);
+
+				const looksContaminated = bboxSize.x > 0.8 || bboxSize.y > 1.2;
+				const itemFraming = (clothingId && ITEM_FRAMING[clothingId]) || null;
+				const framing = itemFraming || (category && CATEGORY_FRAMING[category]) || null;
+
+				const forceFraming = category === "Accessories";
+
 				const fovRad = (camera.fov * Math.PI) / 180;
-				// Smaller factor = closer camera = bigger clothing on screen.
-				// Was 1.6 / 1.9 — tightened to 1.25 / 1.45 so the item fills more of the frame.
-				const distance = (maxDim / 2 / Math.tan(fovRad / 2)) * (previewMode ? 1.25 : 1.45);
+				const zoomFactor = previewMode ? 0.95 : 1.1;
 
-				camera.position.set(0, 0, distance);
-				camera.lookAt(0, 0, 0);
+				let aimX = bboxCenter.x;
+				let aimY = bboxCenter.y;
+				let aimZ = bboxCenter.z;
+				let targetSize = bboxMaxDim;
+
+				if ((looksContaminated || isEmpty || forceFraming) && framing) {
+					aimX = 0;
+					aimY = framing.y;
+					aimZ = 0;
+					targetSize = framing.size;
+				}
+
+				const distance = (targetSize / 2 / Math.tan(fovRad / 2)) * zoomFactor;
+
+				camera.position.set(aimX, aimY, aimZ + distance);
+				camera.lookAt(aimX, aimY, aimZ);
 				camera.updateProjectionMatrix();
+
+				console.log(
+					`[ClothingViewer] ${clothingId} cat=${category} | bboxCenter=(${bboxCenter.x.toFixed(2)},${bboxCenter.y.toFixed(2)},${bboxCenter.z.toFixed(2)}) bboxSize=(${bboxSize.x.toFixed(2)},${bboxSize.y.toFixed(2)},${bboxSize.z.toFixed(2)}) contaminated=${looksContaminated} | aim=(${aimX.toFixed(2)},${aimY.toFixed(2)},${aimZ.toFixed(2)}) targetSize=${targetSize.toFixed(2)} dist=${distance.toFixed(2)}`,
+				);
 
 				const renderOnce = () => {
 					renderer.render(scene, camera);
@@ -172,9 +265,14 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 	useEffect(() => {
 		if (!modelRef.current) return;
 
+		const fp = fabricMaterialProps(fabric);
+		const fabricMap = getFabricTexture(fabric);
 		modelRef.current.traverse((child: any) => {
 			if (child.isMesh && child.material) {
 				child.material.color = new THREE.Color(color || "#D9D9D9");
+				child.material.roughness = fp.roughness;
+				child.material.metalness = fp.metalness;
+				child.material.map = fabricMap;
 				child.material.needsUpdate = true;
 			}
 		});
@@ -183,7 +281,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 			rendererRef.current.render(sceneRef.current, cameraRef.current);
 			glRef.current.endFrameEXP();
 		}
-	}, [color, previewMode]);
+	}, [color, previewMode, fabric]);
 
 	useEffect(() => {
 		return () => {

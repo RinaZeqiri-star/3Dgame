@@ -8,7 +8,7 @@ import { Alert, Image, ImageSourcePropType, Pressable, ScrollView, StyleSheet, T
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 
-import ClothingViewer, { ClothingViewerHandle } from "../components/ClothingViewer";
+import ClothingViewer, { ClothingViewerHandle, FabricKind } from "../components/ClothingViewer";
 import { designStore } from "../utils/designStore";
 
 type ClothingItem = {
@@ -19,31 +19,30 @@ type ClothingItem = {
 };
 
 type Fabric = {
-	id: string;
+	id: FabricKind;
 	name: string;
 	color: string;
+};
+
+type ColorPalette = {
+	id: string;
+	name: string;
+	accent: string;
+	colors: string[];
 };
 
 const categories = ["T-shirt", "Sweaters", "Pants", "Skirts", "Jackets", "Dresses", "Shoes", "Accessories"];
 
 const clothingItems: ClothingItem[] = [
 	{
-		id: "longsleve1",
-		category: "T-shirt",
-		preview: require("../assets/images/clothes/longsleve1.png"),
-		model: null,
-	},
-	{
 		id: "tshirt",
 		category: "T-shirt",
-		// TODO: replace with assets/images/clothes/tshirt.png once a preview is added
 		preview: require("../assets/images/clothes/longsleve1.png"),
 		model: null,
 	},
 	{
 		id: "jeans",
 		category: "Pants",
-		// TODO: replace with assets/images/clothes/jeans.png once a preview is added
 		preview: require("../assets/images/clothes/skirts3.png"),
 		model: null,
 	},
@@ -56,14 +55,12 @@ const clothingItems: ClothingItem[] = [
 	{
 		id: "hoodie",
 		category: "Sweaters",
-		// TODO: replace with assets/images/clothes/hoodie.png once a real preview is added
 		preview: require("../assets/images/clothes/longsleve5.png"),
 		model: null,
 	},
 	{
 		id: "shorts",
 		category: "Pants",
-		// TODO: replace with assets/images/clothes/shorts.png once a real preview is added
 		preview: require("../assets/images/clothes/skirts4.png"),
 		model: null,
 	},
@@ -74,9 +71,6 @@ const clothingItems: ClothingItem[] = [
 		model: null,
 	},
 
-	// --- Newly added items (all use placeholder previews; the grid renders the actual 3D model via ClothingViewer anyway) ---
-
-	// T-shirt
 	{ id: "chemise", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "shortsleeve-chemise", category: "T-shirt", preview: require("../assets/images/clothes/blouse4.png"), model: null },
 	{ id: "haltertop", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
@@ -85,14 +79,12 @@ const clothingItems: ClothingItem[] = [
 	{ id: "tanktop", category: "T-shirt", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "workouttop", category: "T-shirt", preview: require("../assets/images/clothes/blouse4.png"), model: null },
 
-	// Sweaters
 	{ id: "cardigan", category: "Sweaters", preview: require("../assets/images/clothes/longsleve5.png"), model: null },
 	{ id: "cropped-sweater", category: "Sweaters", preview: require("../assets/images/clothes/longsleve6.png"), model: null },
 	{ id: "long-sweater", category: "Sweaters", preview: require("../assets/images/clothes/longsleve5.png"), model: null },
 	{ id: "zipup", category: "Sweaters", preview: require("../assets/images/clothes/jacekt1.png"), model: null },
 	{ id: "fleece-croptop", category: "Sweaters", preview: require("../assets/images/clothes/longsleve6.png"), model: null },
 
-	// Dresses
 	{ id: "casual-dress", category: "Dresses", preview: require("../assets/images/clothes/dress1.png"), model: null },
 	{ id: "cute-dress", category: "Dresses", preview: require("../assets/images/clothes/dress11.png"), model: null },
 	{ id: "fancy-dress", category: "Dresses", preview: require("../assets/images/clothes/dress12.png"), model: null },
@@ -101,18 +93,15 @@ const clothingItems: ClothingItem[] = [
 	{ id: "summer-dress", category: "Dresses", preview: require("../assets/images/clothes/dress11.png"), model: null },
 	{ id: "very-fancy-dress", category: "Dresses", preview: require("../assets/images/clothes/dress12.png"), model: null },
 
-	// Pants
 	{ id: "bikershorts", category: "Pants", preview: require("../assets/images/clothes/skirts4.png"), model: null },
 	{ id: "classy-pants", category: "Pants", preview: require("../assets/images/clothes/skirts3.png"), model: null },
 	{ id: "jean-shorts", category: "Pants", preview: require("../assets/images/clothes/skirts5.png"), model: null },
 	{ id: "leggings", category: "Pants", preview: require("../assets/images/clothes/skirts3.png"), model: null },
 
-	// Skirts
 	{ id: "long-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts3.png"), model: null },
 	{ id: "mini-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts4.png"), model: null },
 	{ id: "school-skirt", category: "Skirts", preview: require("../assets/images/clothes/skirts5.png"), model: null },
 
-	// Shoes
 	{ id: "fancy-shoes", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
 	{ id: "heelboots", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
 	{ id: "heels", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
@@ -120,7 +109,6 @@ const clothingItems: ClothingItem[] = [
 	{ id: "over-knee-boots", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
 	{ id: "sandals", category: "Shoes", preview: require("../assets/images/clothes/shoes9.png"), model: null },
 
-	// Accessories
 	{ id: "little-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "pink-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "necklace", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
@@ -128,7 +116,38 @@ const clothingItems: ClothingItem[] = [
 	{ id: "longsocks", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 ];
 
-const colors = ["#FF6B6B", "#FFB347", "#FFD93D", "#6BCB77", "#4D96FF", "#9B59B6", "#FF85A2", "#1E1E1E", "#8B4513", "#F5E6CC", "#2ECC71", "#E74C3C", "#3498DB", "#F39C12", "#95A5A6"];
+const colorPalettes: ColorPalette[] = [
+	{
+		id: "rainbow",
+		name: "Rainbow",
+		accent: "#FF3B30",
+		colors: ["#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#00C7BE", "#007AFF", "#5856D6", "#AF52DE"],
+	},
+	{
+		id: "pastels",
+		name: "Pastels",
+		accent: "#FFC0CB",
+		colors: ["#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF", "#E0BBE4", "#FCD5CE", "#D8E2DC"],
+	},
+	{
+		id: "neon",
+		name: "Neon",
+		accent: "#FF14A0",
+		colors: ["#FF14A0", "#00FFFF", "#FF00FF", "#39FF14", "#FFFF00", "#FF6600", "#9D00FF", "#00FF7F"],
+	},
+	{
+		id: "earth",
+		name: "Earth Tones",
+		accent: "#8B4513",
+		colors: ["#8B4513", "#A0522D", "#DEB887", "#F4A460", "#D2B48C", "#BC8F8F", "#5C4033", "#6F4E37"],
+	},
+	{
+		id: "jewel",
+		name: "Jewel Tones",
+		accent: "#4B0082",
+		colors: ["#4B0082", "#008080", "#800020", "#FFD700", "#50C878", "#DC143C", "#9966CC", "#0F52BA"],
+	},
+];
 
 const fabrics: Fabric[] = [
 	{ id: "velvet", name: "Velvet", color: "#6C3082" },
@@ -151,6 +170,9 @@ export default function CreateClothingScreen() {
 	const [selectedItem, setSelectedItem] = useState<ClothingItem>(clothingItems.find((item) => item.id === createClothingDraft.selectedClothingId) ?? clothingItems[0]);
 
 	const [selectedColor, setSelectedColor] = useState<string | null>(createClothingDraft.selectedColor);
+
+	const [selectedPaletteId, setSelectedPaletteId] = useState<string>(colorPalettes[0].id);
+	const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
 
 	const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
 
@@ -207,12 +229,9 @@ export default function CreateClothingScreen() {
 
 			const rawSnapshot = (await viewerRef.current?.takeSnapshot()) ?? null;
 
-			// Snapshot has a solid white background, so JPEG is fine and ~5-10x
-			// smaller than PNG. Design needs alpha so it stays PNG.
 			const snapshotImage = await shrinkDataUri(rawSnapshot, 220, "jpeg", 0.78);
 			const shrunkDesignImage = await shrinkDataUri(designImage ?? null, 180, "png");
 
-			// id is omitted — the server assigns _id and we use that for nav.
 			const newItem = {
 				userId,
 				clothingId: selectedItem.id,
@@ -257,8 +276,8 @@ export default function CreateClothingScreen() {
 			<View style={styles.previewArea}>
 				<View style={styles.previewBox}>
 					<View style={{ width: "100%", height: 280 }}>
-						{/* key forces a fresh GL context whenever a different clothing model is picked */}
-						<ClothingViewer key={selectedItem.id} ref={viewerRef} color={selectedColor} clothingId={selectedItem.id} category={selectedItem.category} />
+						{}
+						<ClothingViewer key={selectedItem.id} ref={viewerRef} color={selectedColor} clothingId={selectedItem.id} category={selectedItem.category} fabric={selectedFabric?.id ?? null} />
 					</View>
 
 					{designImage ? (
@@ -287,7 +306,7 @@ export default function CreateClothingScreen() {
 				<View style={styles.tabContent}>
 					{activeTab === "Clothes" && (
 						<>
-							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+							<View style={styles.pillRow}>
 								{categories.map((cat) => {
 									const isActive = selectedCategory === cat;
 
@@ -304,7 +323,7 @@ export default function CreateClothingScreen() {
 										</Pressable>
 									);
 								})}
-							</ScrollView>
+							</View>
 
 							<ScrollView contentContainerStyle={styles.grid}>
 								{filteredItems.map((item) => {
@@ -320,7 +339,7 @@ export default function CreateClothingScreen() {
 												createClothingDraft.selectedCategory = item.category;
 											}}
 										>
-											{/* Live 3D model preview instead of a static PNG placeholder. */}
+											{}
 											<View style={styles.gridThumb} pointerEvents="none">
 												<ClothingViewer clothingId={item.id} category={item.category} previewMode />
 											</View>
@@ -331,21 +350,54 @@ export default function CreateClothingScreen() {
 						</>
 					)}
 
-					{activeTab === "Colors" && (
-						<ScrollView contentContainerStyle={styles.colorGrid}>
-							{colors.map((color) => (
-								<Pressable
-									key={color}
-									style={[styles.swatch, { backgroundColor: color }, selectedColor === color && styles.selectedSwatch]}
-									onPress={() => {
-										setSelectedColor(color);
-										createClothingDraft.selectedColor = color;
-										setSelectedFabric(null);
-									}}
-								/>
-							))}
-						</ScrollView>
-					)}
+					{activeTab === "Colors" &&
+						(() => {
+							const selectedPalette = colorPalettes.find((p) => p.id === selectedPaletteId) ?? colorPalettes[0];
+
+							return (
+								<ScrollView contentContainerStyle={styles.colorTabContent}>
+									<Pressable style={styles.paletteDropdownHeader} onPress={() => setPaletteOpen((open) => !open)}>
+										<Text style={styles.paletteDropdownText}>{selectedPalette.name}</Text>
+										<Text style={styles.paletteDropdownChevron}>{paletteOpen ? "▲" : "▼"}</Text>
+									</Pressable>
+
+									{paletteOpen ? (
+										<View style={styles.paletteDropdownList}>
+											{colorPalettes.map((palette) => {
+												const isSelected = palette.id === selectedPaletteId;
+
+												return (
+													<Pressable
+														key={palette.id}
+														style={[styles.paletteDropdownItem, isSelected && styles.paletteDropdownItemSelected]}
+														onPress={() => {
+															setSelectedPaletteId(palette.id);
+															setPaletteOpen(false);
+														}}
+													>
+														<Text style={styles.paletteDropdownItemText}>{palette.name}</Text>
+													</Pressable>
+												);
+											})}
+										</View>
+									) : null}
+
+									<View style={styles.colorGrid}>
+										{selectedPalette.colors.map((color) => (
+											<Pressable
+												key={color}
+												style={[styles.swatch, { backgroundColor: color }, selectedColor === color && styles.selectedSwatch]}
+												onPress={() => {
+													setSelectedColor(color);
+													createClothingDraft.selectedColor = color;
+													setSelectedFabric(null);
+												}}
+											/>
+										))}
+									</View>
+								</ScrollView>
+							);
+						})()}
 
 					{activeTab === "Fabric" && (
 						<View style={styles.fabricRow}>
@@ -357,9 +409,7 @@ export default function CreateClothingScreen() {
 										key={fabric.id}
 										style={[styles.fabricCard, isSelected && styles.selectedFabricCard]}
 										onPress={() => {
-											setSelectedFabric(fabric);
-											setSelectedColor(fabric.color);
-											createClothingDraft.selectedColor = fabric.color;
+											setSelectedFabric(isSelected ? null : fabric);
 										}}
 									>
 										<View style={[styles.fabricSwatch, { backgroundColor: fabric.color }]} />
@@ -474,14 +524,16 @@ const styles = StyleSheet.create({
 
 	pillRow: {
 		flexDirection: "row",
-		gap: 10,
-		paddingBottom: 14,
+		flexWrap: "wrap",
+		gap: 6,
+		paddingBottom: 10,
+		alignItems: "center",
 	},
 
 	pill: {
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
+		paddingHorizontal: 14,
+		paddingVertical: 4,
+		borderRadius: 14,
 		backgroundColor: "#F0F0F0",
 	},
 
@@ -490,7 +542,7 @@ const styles = StyleSheet.create({
 	},
 
 	pillText: {
-		fontSize: 14,
+		fontSize: 13,
 		fontWeight: "600",
 		color: "#666666",
 	},
@@ -522,18 +574,74 @@ const styles = StyleSheet.create({
 	},
 
 	gridThumb: {
-		width: "90%",
-		height: "90%",
+		width: "100%",
+		height: "100%",
 		overflow: "hidden",
 		borderRadius: 10,
 		backgroundColor: "#FFFFFF",
+	},
+
+	colorTabContent: {
+		paddingBottom: 30,
+	},
+
+	paletteDropdownHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 18,
+		paddingVertical: 12,
+		borderWidth: 1.5,
+		borderColor: "#E0DAF0",
+		borderRadius: 14,
+		backgroundColor: "#FFFFFF",
+	},
+
+	paletteDropdownText: {
+		fontSize: 15,
+		fontWeight: "700",
+		color: "#1E1E1E",
+	},
+
+	paletteDropdownChevron: {
+		fontSize: 14,
+		color: "#5856D6",
+	},
+
+	paletteDropdownList: {
+		marginTop: 8,
+		borderRadius: 14,
+		overflow: "hidden",
+		borderWidth: 1.5,
+		borderColor: "#E0DAF0",
+		backgroundColor: "#FFFFFF",
+	},
+
+	paletteDropdownItem: {
+		alignItems: "center",
+		justifyContent: "center",
+		paddingHorizontal: 18,
+		paddingVertical: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: "#F2EEFF",
+	},
+
+	paletteDropdownItemSelected: {
+		backgroundColor: "#F7F4FF",
+	},
+
+	paletteDropdownItemText: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#1E1E1E",
+		textAlign: "center",
 	},
 
 	colorGrid: {
 		flexDirection: "row",
 		flexWrap: "wrap",
 		gap: 14,
-		paddingVertical: 8,
+		paddingTop: 18,
 		paddingBottom: 20,
 	},
 
