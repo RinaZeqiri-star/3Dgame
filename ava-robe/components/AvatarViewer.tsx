@@ -382,11 +382,15 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 			const center = box.getCenter(new THREE.Vector3());
 			const size = box.getSize(new THREE.Vector3());
 
-			const frameDim = Math.max(size.y, size.x * 0.6, size.z * 0.6);
+			const fovRad = (camera.fov * Math.PI) / 180;
+			const aspect = width / height;
+			const distForHeight = size.y / 2 / Math.tan(fovRad / 2);
+			const distForWidth = size.x / 2 / (Math.tan(fovRad / 2) * aspect);
+			const distance = Math.max(distForHeight, distForWidth) * 1.15;
 
 			const lookTarget = new THREE.Vector3(center.x, center.y + size.y * verticalFraming, center.z);
 
-			camera.position.set(center.x, center.y + size.y * verticalFraming, center.z + frameDim * 2.0);
+			camera.position.set(center.x, center.y + size.y * verticalFraming, center.z + distance);
 			camera.lookAt(lookTarget);
 
 			const bodyBoneMap = new Map<string, THREE.Bone>();
@@ -482,6 +486,42 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 
 							avatarGroup.add(clothingGltf.scene);
 							console.log("[AvatarViewer] loaded clothing", item.clothingId, "meshes:", meshCount, "skipped body parts:", skippedBodyParts, "skinned-bones rebound:", reboundCount);
+
+							if (item.designImage && typeof globalThis !== "undefined" && typeof (globalThis as any).Image !== "undefined") {
+								try {
+									const img = new (globalThis as any).Image();
+									img.crossOrigin = "anonymous";
+									img.onload = () => {
+										const tex = new THREE.Texture(img);
+										tex.needsUpdate = true;
+										const spriteMat = new THREE.SpriteMaterial({
+											map: tex,
+											transparent: true,
+											depthTest: false,
+										});
+										const sprite = new THREE.Sprite(spriteMat);
+
+										const cat = item.category;
+										let yPos = 1.32; // chest default
+										if (cat === "Pants") yPos = 0.7;
+										else if (cat === "Skirts") yPos = 0.85;
+										else if (cat === "Dresses") yPos = 1.1;
+										else if (cat === "Shoes") yPos = 0.1;
+
+										const baseScale = 0.22 * (item.designScale ?? 1);
+										sprite.scale.set(baseScale, baseScale, 1);
+										sprite.position.set(0, yPos, 0.16);
+										sprite.renderOrder = 999;
+										avatarGroup.add(sprite);
+									};
+									img.onerror = (err: any) => {
+										console.log("[AvatarViewer] design image failed to load:", err);
+									};
+									img.src = item.designImage;
+								} catch (designErr) {
+									console.log("[AvatarViewer] design sprite error:", designErr);
+								}
+							}
 						} catch (clothingError) {
 							console.log("[AvatarViewer] clothing load failed for", item.clothingId, clothingError);
 						}

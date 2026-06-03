@@ -113,7 +113,7 @@ export default function Wardrobe2Screen() {
 									<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
 								) : (
 									<View style={styles.viewerWrapper}>
-										<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+										<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
 									</View>
 								)}
 
@@ -123,11 +123,7 @@ export default function Wardrobe2Screen() {
 										style={[
 											styles.designImage,
 											{
-												transform: [
-													{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
-													{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
-													{ scale: item.designScale ?? 1 },
-												],
+												transform: [{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO }, { translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO }, { scale: item.designScale ?? 1 }],
 											},
 										]}
 										resizeMode="contain"
@@ -268,8 +264,6 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		width: 42,
 		height: 42,
-		// Positioned over the chest area of the clothing snapshot.
-		// (was top: 68 — pushed the design below the t-shirt in the card)
 		top: 30,
 		left: "50%",
 		marginLeft: -21,

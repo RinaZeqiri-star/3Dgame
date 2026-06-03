@@ -4,6 +4,10 @@ export type EquippedItem = {
 	clothingId: string;
 	category: string;
 	color: string;
+	designImage?: string | null;
+	designScale?: number;
+	co2SavedPct?: number;
+	waterSavedPct?: number;
 };
 
 const outfitKey = (userId: string) => `currentOutfit_${userId}`;
@@ -47,9 +51,6 @@ export async function setOutfit(userId: string, items: EquippedItem[]): Promise<
 	} catch (err) {
 		console.log("setOutfit error — clearing clothes cache and retrying:", err);
 
-		// localStorage on web is quota-limited (~5MB). The clothes cache
-		// is the usual culprit. Drop it (it's a server-backed fallback)
-		// and try the outfit write again.
 		try {
 			await AsyncStorage.removeItem(`clothesCache_${userId}`);
 			await AsyncStorage.setItem(outfitKey(userId), payload);

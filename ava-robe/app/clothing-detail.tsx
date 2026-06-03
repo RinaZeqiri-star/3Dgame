@@ -50,7 +50,7 @@ export default function ClothingDetailScreen() {
 					<Image source={{ uri: item.snapshotImage }} style={styles.previewImage} resizeMode="contain" />
 				) : item ? (
 					<View style={styles.viewerWrapper}>
-						<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+						<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
 					</View>
 				) : null}
 

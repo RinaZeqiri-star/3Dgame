@@ -266,7 +266,7 @@ export default function RecommendOutfitScreen() {
 									<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
 								) : (
 									<View style={styles.viewerWrapper}>
-										<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+										<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
 									</View>
 								)}
 							</Pressable>
@@ -360,7 +360,7 @@ export default function RecommendOutfitScreen() {
 										{item.snapshotImage ? (
 											<Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" />
 										) : (
-											<ClothingViewer clothingId={item.clothingId} color={item.color} previewMode />
+											<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
 										)}
 									</View>
 								))}
@@ -483,10 +483,10 @@ const styles = StyleSheet.create({
 	},
 
 	suggestCard: {
-		marginHorizontal: 18,
+		marginHorizontal: 12,
 		marginBottom: 16,
 		paddingVertical: 14,
-		paddingHorizontal: 14,
+		paddingHorizontal: 10,
 		borderWidth: 1.4,
 		borderColor: "#000000",
 		borderRadius: 14,
@@ -508,16 +508,17 @@ const styles = StyleSheet.create({
 	thumbsRow: {
 		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: 8,
+		gap: 10,
 		justifyContent: "center",
-		marginBottom: 12,
+		marginBottom: 14,
 	},
 
 	thumb: {
-		width: 62,
-		height: 80,
-		borderWidth: 1,
+		width: 110,
+		height: 140,
+		borderWidth: 1.2,
 		borderColor: "#000000",
+		borderRadius: 8,
 		backgroundColor: "#FFFFFF",
 		overflow: "hidden",
 	},

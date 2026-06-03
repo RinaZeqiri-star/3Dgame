@@ -39,22 +39,36 @@ function normalizeClothing(doc: any): SavedClothing {
 const cacheKey = (userId: string) => `clothesCache_${userId}`;
 
 async function writeCache(userId: string, items: SavedClothing[]): Promise<void> {
-	// Strip the heavy base64 image fields — they blow past localStorage's
-	// ~5MB quota on web after a handful of items. The cache is only an
-	// offline metadata fallback; live image data comes from the server.
 	const lean = items.map((it) => ({
-		...it,
-		snapshotImage: null,
-		designImage: null,
+		id: it.id,
+		userId: it.userId,
+		clothingId: it.clothingId,
+		category: it.category,
+		color: it.color,
+		fabric: it.fabric,
+		createdAt: it.createdAt,
+		timesWorn: it.timesWorn,
+		co2SavedPct: it.co2SavedPct,
+		waterSavedPct: it.waterSavedPct,
 	}));
 
+	const payload = JSON.stringify(lean);
+
 	try {
-		await AsyncStorage.setItem(cacheKey(userId), JSON.stringify(lean));
+		await AsyncStorage.setItem(cacheKey(userId), payload);
 	} catch (err) {
-		console.log("writeCache error (likely over quota) — clearing cache:", err);
+		console.log("writeCache error (likely over quota) — wiping ALL clothes caches and retrying:", err);
+
 		try {
-			await AsyncStorage.removeItem(cacheKey(userId));
-		} catch {}
+			const allKeys = await AsyncStorage.getAllKeys();
+			const cacheKeys = allKeys.filter((k) => k.startsWith("clothesCache_"));
+			if (cacheKeys.length > 0) {
+				await AsyncStorage.multiRemove(cacheKeys);
+			}
+			await AsyncStorage.setItem(cacheKey(userId), payload);
+		} catch (retryErr) {
+			console.log("writeCache retry failed — giving up on cache:", retryErr);
+		}
 	}
 }
 

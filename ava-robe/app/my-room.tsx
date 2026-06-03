@@ -1,5 +1,6 @@
 import AvatarViewer from "@/components/AvatarViewer";
 import { getBackgroundById } from "@/utils/backgrounds";
+import { getSavedClothes } from "@/utils/clothingStorage";
 import { EquippedItem, getOutfit } from "@/utils/outfitStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -67,9 +68,21 @@ export default function MyRoomScreen() {
 
 				const uid = user._id || user.id;
 				if (uid) {
-					const loadedOutfit = await getOutfit(uid);
-					console.log("[my-room] loaded outfit for uid", uid, "items:", loadedOutfit);
-					setOutfitState(loadedOutfit);
+					const [loadedOutfit, savedClothes] = await Promise.all([getOutfit(uid), getSavedClothes(uid).catch(() => [])]);
+					const byId = new Map(savedClothes.map((c) => [c.id, c]));
+					const enriched: EquippedItem[] = loadedOutfit.map((eq) => {
+						const full = byId.get(eq.id);
+						if (!full) return eq;
+						return {
+							...eq,
+							designImage: full.designImage ?? null,
+							designScale: full.designScale ?? 1,
+							co2SavedPct: full.co2SavedPct ?? 0,
+							waterSavedPct: full.waterSavedPct ?? 0,
+						};
+					});
+					console.log("[my-room] loaded outfit for uid", uid, "items:", enriched);
+					setOutfitState(enriched);
 				}
 
 				if (user.currentBackground) {
@@ -89,6 +102,15 @@ export default function MyRoomScreen() {
 	);
 
 	const viewerKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${avatar.bodyId ?? "default"}|${outfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, avatar.bodyId, outfit]);
+	const { co2Pct, waterPct } = useMemo(() => {
+		if (outfit.length === 0) return { co2Pct: 0, waterPct: 0 };
+		const co2Sum = outfit.reduce((acc, it) => acc + (it.co2SavedPct ?? 0), 0);
+		const waterSum = outfit.reduce((acc, it) => acc + (it.waterSavedPct ?? 0), 0);
+		return {
+			co2Pct: Math.round(co2Sum / outfit.length),
+			waterPct: Math.round(waterSum / outfit.length),
+		};
+	}, [outfit]);
 
 	return (
 		<View style={styles.screen}>
@@ -105,7 +127,19 @@ export default function MyRoomScreen() {
 
 			<View style={styles.avatarStage} pointerEvents="none">
 				{hasSavedAvatar ? (
-					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} bodyId={avatar.bodyId} backgroundColor={null} verticalFraming={0.22} poseMode="rest" outfit={outfit} />
+					<AvatarViewer
+						key={viewerKey}
+						skinColor={avatar.skinColor}
+						eyeColor={avatar.eyeColor}
+						hairColor={avatar.hairColor}
+						hasHair={avatar.hasHair}
+						hairstyleId={avatar.hairstyleId}
+						bodyId={avatar.bodyId}
+						backgroundColor={null}
+						verticalFraming={0.22}
+						poseMode="rest"
+						outfit={outfit}
+					/>
 				) : (
 					<View style={styles.avatarPlaceholder}>
 						<Text style={styles.placeholderText}>Save your avatar to see it here</Text>
@@ -118,20 +152,20 @@ export default function MyRoomScreen() {
 					<View style={styles.ecoBarRow}>
 						<Text style={styles.ecoIcon}>🌿</Text>
 						<View style={styles.progressBarTrack}>
-							{}
-							<View style={[styles.progressBarFill, styles.progressFillCO2, { width: "0%" }]} />
+							<View style={[styles.progressBarFill, styles.progressFillCO2, { width: `${Math.max(0, Math.min(100, co2Pct))}%` }]} />
 						</View>
+						<Text style={styles.ecoPercent}>{co2Pct}%</Text>
 					</View>
-					<Text style={styles.ecoLabel}>CO2 emissions</Text>
+					<Text style={styles.ecoLabel}>CO2 saved</Text>
 
 					<View style={[styles.ecoBarRow, styles.secondBarSpacing]}>
 						<Text style={styles.ecoIcon}>💧</Text>
 						<View style={styles.progressBarTrack}>
-							{}
-							<View style={[styles.progressBarFill, styles.progressFillWater, { width: "0%" }]} />
+							<View style={[styles.progressBarFill, styles.progressFillWater, { width: `${Math.max(0, Math.min(100, waterPct))}%` }]} />
 						</View>
+						<Text style={styles.ecoPercent}>{waterPct}%</Text>
 					</View>
-					<Text style={styles.ecoLabel}>Water usage</Text>
+					<Text style={styles.ecoLabel}>Water saved</Text>
 				</View>
 
 				<View style={styles.buttonRow}>
@@ -284,6 +318,15 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		marginTop: 4,
 		marginLeft: 32,
+	},
+
+	ecoPercent: {
+		marginLeft: 10,
+		fontSize: 13,
+		fontWeight: "800",
+		color: "#1E1E1E",
+		minWidth: 36,
+		textAlign: "right",
 	},
 
 	buttonRow: {
