@@ -13,7 +13,7 @@ const categories = ["T-shirt", "Sweaters", "Jackets", "Pants", "Skirts", "Dresse
 
 const API_URL = "http://192.168.129.8:5000";
 const COIN_REWARD = 15;
-const SNAPSHOT_BG = "#F7E9DC"; 
+const SNAPSHOT_BG = "#F7E9DC";
 
 type SavedAvatar = {
 	skinColor: string | null;
@@ -103,10 +103,7 @@ export default function RecommendOutfitScreen() {
 		}, []),
 	);
 
-	const previewKey = useMemo(
-		() => `${avatar.hairstyleId ?? "default"}|${avatar.bodyId ?? "default"}|${chosenOutfit.map((it) => it.id).join("|")}`,
-		[avatar.hairstyleId, avatar.bodyId, chosenOutfit],
-	);
+	const previewKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${avatar.bodyId ?? "default"}|${chosenOutfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, avatar.bodyId, chosenOutfit]);
 
 	const filteredClothes = useMemo(() => savedClothes.filter((it) => it.category === selectedCategory), [savedClothes, selectedCategory]);
 
@@ -168,7 +165,6 @@ export default function RecommendOutfitScreen() {
 			console.log("[recommend-outfit] setOutfit failed:", err);
 		}
 
-		
 		incrementTimesWorn(userId, itemIds).catch((err) => {
 			console.log("[recommend-outfit] incrementTimesWorn failed:", err);
 		});
@@ -194,7 +190,6 @@ export default function RecommendOutfitScreen() {
 			}
 
 			if (Platform.OS === "web") {
-				
 				const a = document.createElement("a");
 				a.href = uri;
 				a.download = `ava-robe-outfit-${Date.now()}.png`;
@@ -236,7 +231,9 @@ export default function RecommendOutfitScreen() {
 			setSuggestions([]);
 			return;
 		}
-		router.back();
+
+		if (router.canGoBack()) router.back();
+		else router.replace("/my-room");
 	};
 
 	if (phase === "pick") {
@@ -318,16 +315,8 @@ export default function RecommendOutfitScreen() {
 				</View>
 
 				<View style={styles.previewButtonRow}>
-					<Pressable
-						style={[styles.previewButton, styles.previewSaveButton, (saving || !hasSavedAvatar) && styles.previewButtonDisabled]}
-						onPress={handleSaveImage}
-						disabled={saving || !hasSavedAvatar}
-					>
-						{saving ? (
-							<ActivityIndicator color="#FFFFFF" />
-						) : (
-							<Text style={styles.previewSaveButtonText}>Save to phone</Text>
-						)}
+					<Pressable style={[styles.previewButton, styles.previewSaveButton, (saving || !hasSavedAvatar) && styles.previewButtonDisabled]} onPress={handleSaveImage} disabled={saving || !hasSavedAvatar}>
+						{saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.previewSaveButtonText}>Save to phone</Text>}
 					</Pressable>
 
 					<Pressable style={[styles.previewButton, styles.previewDoneButton]} onPress={handleDone}>
@@ -357,11 +346,7 @@ export default function RecommendOutfitScreen() {
 							<View style={styles.thumbsRow}>
 								{suggestion.items.map((item) => (
 									<View key={item.id} style={styles.thumb}>
-										{item.snapshotImage ? (
-											<Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" />
-										) : (
-											<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
-										)}
+										{item.snapshotImage ? <Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" /> : <ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />}
 									</View>
 								))}
 							</View>

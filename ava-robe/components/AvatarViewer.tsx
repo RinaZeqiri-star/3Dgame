@@ -168,14 +168,21 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 
 	useImperativeHandle(ref, () => ({
 		takeSnapshot: async () => {
-			if (!glRef.current || !rendererRef.current || !sceneRef.current || !cameraRef.current) {
+			const missing: string[] = [];
+			if (!glRef.current) missing.push("gl");
+			if (!rendererRef.current) missing.push("renderer");
+			if (!sceneRef.current) missing.push("scene");
+			if (!cameraRef.current) missing.push("camera");
+			if (missing.length > 0) {
+				console.log("[AvatarViewer] takeSnapshot — missing refs:", missing.join(", "));
 				return null;
 			}
 
 			try {
-				rendererRef.current.render(sceneRef.current, cameraRef.current);
+				rendererRef.current!.render(sceneRef.current!, cameraRef.current!);
 				const snapshot = await GLView.takeSnapshotAsync(glRef.current, { format: "png" });
 				const uri = typeof snapshot.uri === "string" ? snapshot.uri : (snapshot.uri as any)?._data?.uri;
+				console.log("[AvatarViewer] takeSnapshot success — uri starts with:", uri?.slice(0, 40));
 				return uri ?? null;
 			} catch (error) {
 				console.log("[AvatarViewer] snapshot error:", error);

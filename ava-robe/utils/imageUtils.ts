@@ -2,10 +2,35 @@ import { Platform } from "react-native";
 
 type ImageFormat = "png" | "jpeg";
 
+async function blobUriToDataUri(blobUri: string): Promise<string> {
+	const response = await fetch(blobUri);
+	const blob = await response.blob();
+	return await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onloadend = () => resolve(reader.result as string);
+		reader.onerror = reject;
+		reader.readAsDataURL(blob);
+	});
+}
+
 export async function shrinkDataUri(uri: string | null | undefined, maxDim = 240, format: ImageFormat = "png", quality = 0.85): Promise<string | null> {
 	if (!uri) return null;
 	if (Platform.OS !== "web") return uri;
-	if (!uri.startsWith("data:image")) return uri;
+
+	let workingUri = uri;
+
+	if (workingUri.startsWith("blob:")) {
+		try {
+			workingUri = await blobUriToDataUri(workingUri);
+		} catch (err) {
+			console.log("[shrinkDataUri] blob → data conversion failed:", err);
+			return uri;
+		}
+	}
+
+	if (!workingUri.startsWith("data:image")) return workingUri;
+
+	const sourceUri = workingUri;
 
 	return new Promise((resolve) => {
 		const img = new (globalThis as any).Image();
@@ -22,7 +47,7 @@ export async function shrinkDataUri(uri: string | null | undefined, maxDim = 240
 			const ctx = canvas.getContext("2d");
 
 			if (!ctx) {
-				resolve(uri);
+				resolve(sourceUri);
 				return;
 			}
 			if (format === "jpeg") {
@@ -36,11 +61,11 @@ export async function shrinkDataUri(uri: string | null | undefined, maxDim = 240
 				const mime = format === "jpeg" ? "image/jpeg" : "image/png";
 				resolve(canvas.toDataURL(mime, quality));
 			} catch {
-				resolve(uri);
+				resolve(sourceUri);
 			}
 		};
 
-		img.onerror = () => resolve(uri);
-		img.src = uri;
+		img.onerror = () => resolve(sourceUri);
+		img.src = sourceUri;
 	});
 }

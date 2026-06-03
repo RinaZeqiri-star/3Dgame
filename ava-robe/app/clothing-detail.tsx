@@ -41,7 +41,13 @@ export default function ClothingDetailScreen() {
 
 	return (
 		<ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
-			<Pressable onPress={() => router.back()} style={styles.backButton}>
+			<Pressable
+				onPress={() => {
+					if (router.canGoBack()) router.back();
+					else router.replace("/wardrobe2");
+				}}
+				style={styles.backButton}
+			>
 				<Text style={styles.backArrow}>←</Text>
 			</Pressable>
 
@@ -60,11 +66,7 @@ export default function ClothingDetailScreen() {
 						style={[
 							styles.designImage,
 							{
-								transform: [
-									{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
-									{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
-									{ scale: item.designScale ?? 1 },
-								],
+								transform: [{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO }, { translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO }, { scale: item.designScale ?? 1 }],
 							},
 						]}
 						resizeMode="contain"

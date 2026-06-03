@@ -1,26 +1,53 @@
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
+const API_URL = "http://192.168.129.8:5000";
+
+type RecyclePost = {
+	_id?: string;
+	title?: string;
+	mediaUris?: string[];
+	username?: string;
+	createdAt?: string;
+};
 
 export default function ProfileScreen() {
 	const router = useRouter();
 
 	const [username, setUsername] = useState("user");
 	const [profileImage, setProfileImage] = useState<string | null>(null);
+	const [clothesPosted, setClothesPosted] = useState<number>(0);
+	const [backgroundsUnlocked, setBackgroundsUnlocked] = useState<number>(0);
+	const [myPosts, setMyPosts] = useState<RecyclePost[]>([]);
 
 	const loadUser = async () => {
 		const storedUser = await AsyncStorage.getItem("user");
 		const storedProfileImage = await AsyncStorage.getItem("profileImage");
 
-		if (storedUser) {
-			const user = JSON.parse(storedUser);
-			setUsername(user.instagram || user.name);
-		}
+		if (!storedUser) return;
+
+		const user = JSON.parse(storedUser);
+		setUsername(user.instagram || user.name);
+		setBackgroundsUnlocked(Array.isArray(user.ownedBackgrounds) ? user.ownedBackgrounds.length : 0);
 
 		if (storedProfileImage) {
 			setProfileImage(storedProfileImage);
+		}
+		try {
+			const response = await fetch(`${API_URL}/recycle-posts`);
+			if (response.ok) {
+				const allPosts = await response.json();
+				const myName = user.instagram || user.name;
+				const mine: RecyclePost[] = Array.isArray(allPosts) ? allPosts.filter((p: any) => p?.username === myName) : [];
+				setClothesPosted(mine.length);
+				setMyPosts(mine);
+			}
+		} catch (err) {
+			console.log("[profile] failed to load recycle posts:", err);
 		}
 	};
 
@@ -46,7 +73,7 @@ export default function ProfileScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
+		<ScrollView style={styles.scrollScreen} contentContainerStyle={styles.container}>
 			<Pressable onPress={() => router.push("/homepage")} style={styles.backButton}>
 				<Text style={styles.backArrow}>←</Text>
 			</Pressable>
@@ -72,38 +99,47 @@ export default function ProfileScreen() {
 			<View style={styles.statsBox}>
 				<View style={styles.statItem}>
 					<Text style={styles.icon}>👕</Text>
-					<Text style={styles.number}>12</Text>
-					<Text style={styles.label}>Clothes{"\n"}recycled</Text>
-				</View>
-
-				<View style={styles.statItem}>
-					<Text style={styles.leaf}>♧</Text>
-					<Text style={styles.number}>24kg</Text>
-					<Text style={styles.label}>CO2{"\n"}saved</Text>
+					<Text style={styles.number}>{clothesPosted}</Text>
+					<Text style={styles.label}>Clothes{"\n"}posted</Text>
 				</View>
 
 				<View style={styles.statItem}>
 					<Text style={styles.iconGrey}>★</Text>
-					<Text style={styles.number}>5</Text>
+					<Text style={styles.number}>{backgroundsUnlocked}</Text>
 					<Text style={styles.label}>Backgrounds{"\n"}unlocked</Text>
 				</View>
-
-				<View style={styles.statItem}>
-					<Text style={styles.heart}>♥</Text>
-					<Text style={styles.number}>27</Text>
-					<Text style={styles.label}>Outfits{"\n"}saved</Text>
-				</View>
 			</View>
-		</View>
+
+			<Text style={styles.sectionTitle}>Your posts</Text>
+			{myPosts.length === 0 ? (
+				<Text style={styles.emptyHint}>You haven&apos;t posted anything yet. Head to Recycle to share a piece.</Text>
+			) : (
+				<View style={styles.postGrid}>
+					{myPosts.map((post) => {
+						const firstMedia = post.mediaUris?.[0];
+						const imgUri = firstMedia ? resolveMediaUrl(firstMedia) : null;
+						return (
+							<View key={post._id ?? post.createdAt} style={styles.postTile}>
+								{imgUri ? <Image source={{ uri: imgUri }} style={styles.postImage} resizeMode="cover" /> : <View style={styles.postEmpty} />}
+							</View>
+						);
+					})}
+				</View>
+			)}
+		</ScrollView>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: {
+	scrollScreen: {
 		flex: 1,
 		backgroundColor: "#FFFFFF",
+	},
+
+	container: {
 		alignItems: "center",
 		paddingTop: 80,
+		paddingBottom: 40,
 	},
 
 	backButton: {
@@ -194,7 +230,8 @@ const styles = StyleSheet.create({
 
 	statItem: {
 		alignItems: "center",
-		width: "24%",
+		// 2 stats — give each plenty of room.
+		width: "48%",
 	},
 
 	icon: {
@@ -232,5 +269,48 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		textAlign: "center",
 		color: "#000000",
+	},
+
+	sectionTitle: {
+		alignSelf: "flex-start",
+		marginLeft: "7%",
+		marginTop: 30,
+		marginBottom: 14,
+		fontSize: 17,
+		fontWeight: "700",
+		color: "#1E1E1E",
+	},
+
+	emptyHint: {
+		fontSize: 13,
+		color: "#777777",
+		fontWeight: "600",
+		textAlign: "center",
+		paddingHorizontal: 32,
+		marginTop: 10,
+	},
+
+	postGrid: {
+		width: "86%",
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 4,
+	},
+
+	postTile: {
+		width: "32.5%",
+		aspectRatio: 1,
+		overflow: "hidden",
+		backgroundColor: "#F4F0E1",
+	},
+
+	postImage: {
+		width: "100%",
+		height: "100%",
+	},
+
+	postEmpty: {
+		flex: 1,
+		backgroundColor: "#EEE",
 	},
 });
