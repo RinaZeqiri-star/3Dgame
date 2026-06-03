@@ -6,13 +6,30 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getClothingModel } from "../utils/clothingModels";
 
+export type FabricKind = "cotton" | "silk" | "velvet" | "denim";
+
 type ClothingViewerProps = {
 	color?: string | null;
 	previewMode?: boolean;
 	clothingId?: string;
 	category?: string;
 	modelAsset?: any;
+	fabric?: FabricKind | null;
 };
+
+// Per-fabric material properties — gives each fabric a distinct look on the
+// 3D model even without bitmap textures (cotton matte, silk shiny, etc.).
+const FABRIC_PROPS: Record<FabricKind, { roughness: number; metalness: number }> = {
+	cotton: { roughness: 0.95, metalness: 0.0 },
+	silk: { roughness: 0.2, metalness: 0.15 },
+	velvet: { roughness: 0.85, metalness: 0.1 },
+	denim: { roughness: 0.8, metalness: 0.0 },
+};
+
+function fabricMaterialProps(fabric: FabricKind | null | undefined) {
+	if (fabric && FABRIC_PROPS[fabric]) return FABRIC_PROPS[fabric];
+	return { roughness: 0.7, metalness: 0.0 };
+}
 
 export type ClothingViewerHandle = {
 	takeSnapshot: () => Promise<string | null>;

@@ -1,5 +1,6 @@
 import { getClothingById, SavedClothing, updateClothing } from "@/utils/clothingStorage";
 import { resetClothingDraft } from "@/utils/createClothingDraft";
+import { clearSavedDesignImage } from "@/utils/designStore";
 import { calculateSustainability } from "@/utils/sustainabilityCalc";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -71,6 +72,7 @@ export default function ClothingInfoScreen() {
 		});
 
 		resetClothingDraft();
+		clearSavedDesignImage();
 
 		setSaving(false);
 

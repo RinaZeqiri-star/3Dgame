@@ -5,3 +5,7 @@ export const designStore: {
 export function setSavedDesignImage(uri: string) {
 	designStore.savedDesignImage = uri;
 }
+
+export function clearSavedDesignImage() {
+	delete designStore.savedDesignImage;
+}

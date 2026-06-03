@@ -1,11 +1,11 @@
 export const createClothingDraft = {
 	selectedColor: null as string | null,
-	selectedClothingId: "longsleve1",
+	selectedClothingId: "tshirt",
 	selectedCategory: "T-shirt",
 };
 
 export function resetClothingDraft() {
 	createClothingDraft.selectedColor = null;
-	createClothingDraft.selectedClothingId = "longsleve1";
+	createClothingDraft.selectedClothingId = "tshirt";
 	createClothingDraft.selectedCategory = "T-shirt";
 }
