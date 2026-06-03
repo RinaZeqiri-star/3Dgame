@@ -16,8 +16,6 @@ const fs = require("fs");
 const app = express();
 
 app.use(cors());
-// Bumped from the 100KB default because clothing items include base64 images
-// (snapshot + design) that can easily exceed it.
 app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static("uploads"));
 
@@ -284,18 +282,6 @@ app.post("/upload-recycle-media", upload.array("media", 20), (req, res) => {
 	}
 });
 
-// Lazy-load the model — saves boot time. First call downloads & caches the
-// model (~30 MB) under node_modules/@imgly/background-removal-node, after
-// that it's instant.
-let removeBgLocal = null;
-async function getRemoveBg() {
-	if (!removeBgLocal) {
-		const mod = await import("@imgly/background-removal-node");
-		removeBgLocal = mod.removeBackground;
-	}
-	return removeBgLocal;
-}
-
 app.post("/remove-background", upload.single("image"), async (req, res) => {
 	const filePath = req.file?.path;
 
@@ -306,24 +292,38 @@ app.post("/remove-background", upload.single("image"), async (req, res) => {
 			return res.status(400).json({ error: "No image uploaded" });
 		}
 
-		// Run locally on the server with @imgly/background-removal-node.
-		// No API key, no quota, no internet needed after the first run.
-		const removeBg = await getRemoveBg();
-		const cleanedBlob = await removeBg(filePath);
-		const buffer = Buffer.from(await cleanedBlob.arrayBuffer());
+		if (!process.env.REMOVE_BG_API_KEY) {
+			console.log("[remove-background] REMOVE_BG_API_KEY missing — returning original image");
+			const original = fs.readFileSync(filePath);
+			fs.unlinkSync(filePath);
+			res.set("Content-Type", req.file.mimetype || "image/jpeg");
+			res.set("X-Background-Removed", "false");
+			return res.send(original);
+		}
+
+		const formData = new FormData();
+		formData.append("image_file", fs.createReadStream(filePath));
+		formData.append("size", "preview");
+
+		const response = await axios.post("https://api.remove.bg/v1.0/removebg", formData, {
+			headers: {
+				...formData.getHeaders(),
+				"X-Api-Key": process.env.REMOVE_BG_API_KEY,
+			},
+			responseType: "arraybuffer",
+		});
 
 		fs.unlinkSync(filePath);
 
 		res.set("Content-Type", "image/png");
 		res.set("X-Background-Removed", "true");
-		res.send(buffer);
+		res.send(response.data);
 	} catch (err) {
 		console.log("=== REMOVE BG ERROR ===");
-		console.log(err.message);
-		console.log(err.stack);
+		console.log("Status:", err.response?.status);
+		console.log("Body:", err.response?.data?.toString() || err.message);
 		console.log("=======================");
 
-		// Fallback: return the original image so the user's flow doesn't break.
 		try {
 			if (filePath && fs.existsSync(filePath)) {
 				const original = fs.readFileSync(filePath);
@@ -559,11 +559,6 @@ app.post("/sustainability-estimate", async (req, res) => {
 		});
 	}
 });
-
-// ---------------------------------------------------------------------------
-// Clothing CRUD — replaces the old client-side localStorage approach so the
-// browser quota no longer caps a user's wardrobe.
-// ---------------------------------------------------------------------------
 
 app.post("/clothes", async (req, res) => {
 	try {

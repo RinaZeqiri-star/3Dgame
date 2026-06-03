@@ -262,11 +262,11 @@ const styles = StyleSheet.create({
 
 	designImage: {
 		position: "absolute",
-		width: 42,
-		height: 42,
-		top: 30,
+		width: 68,
+		height: 68,
+		top: 28,
 		left: "50%",
-		marginLeft: -21,
+		marginLeft: -34,
 		zIndex: 3,
 	},
 
