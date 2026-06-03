@@ -35,7 +35,7 @@ export type ClothingViewerHandle = {
 	takeSnapshot: () => Promise<string | null>;
 };
 
-const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ color, previewMode = false, clothingId = "longsleve1", category, modelAsset }, ref) => {
+const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ color, previewMode = false, clothingId = "tshirt", category, modelAsset, fabric }, ref) => {
 	const requestRef = useRef<number | null>(null);
 	const modelRef = useRef<THREE.Object3D | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -109,10 +109,11 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 						charPartMeshes.push(child);
 						return;
 					}
+					const fp = fabricMaterialProps(fabric);
 					child.material = new THREE.MeshStandardMaterial({
 						color: new THREE.Color(color || "#D9D9D9"),
-						roughness: 0.7,
-						metalness: 0.0,
+						roughness: fp.roughness,
+						metalness: fp.metalness,
 					});
 				});
 
@@ -135,7 +136,9 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 
 	
 				const fovRad = (camera.fov * Math.PI) / 180;
-				const distance = (maxDim / 2 / Math.tan(fovRad / 2)) * (previewMode ? 1.6 : 1.9);
+				// Smaller factor = closer camera = bigger clothing on screen.
+				// Was 1.6 / 1.9 — tightened to 1.25 / 1.45 so the item fills more of the frame.
+				const distance = (maxDim / 2 / Math.tan(fovRad / 2)) * (previewMode ? 1.25 : 1.45);
 
 				camera.position.set(0, 0, distance);
 				camera.lookAt(0, 0, 0);
