@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+const LOGO = require("../assets/images/logo.png");
 
 const API_URL = "http://192.168.129.8:5000";
 
@@ -39,6 +41,8 @@ export default function SignupScreen() {
 	return (
 		<View style={styles.container}>
 			<View style={styles.formContainer}>
+				<Image source={LOGO} style={styles.logo} resizeMode="contain" />
+
 				<Text style={styles.title}>Sign Up</Text>
 
 				<TextInput style={styles.input} placeholder="Name" placeholderTextColor="#6E6E6E" value={name} onChangeText={setName} />
@@ -71,10 +75,17 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 
+	logo: {
+		width: 220,
+		height: 220,
+		alignSelf: "center",
+		marginBottom: 12,
+	},
+
 	title: {
 		fontSize: 32,
 		color: "#000000",
-		marginBottom: 40,
+		marginBottom: 32,
 		textAlign: "center",
 		fontWeight: "700",
 	},

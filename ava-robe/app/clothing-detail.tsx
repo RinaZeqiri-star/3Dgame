@@ -2,7 +2,7 @@ import ClothingViewer from "@/components/ClothingViewer";
 import { getClothingById, SavedClothing } from "@/utils/clothingStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const DESIGN_PREVIEW_RATIO = 110 / 280;
@@ -39,6 +39,19 @@ export default function ClothingDetailScreen() {
 	const madeIn = item?.madeIn?.trim() || "-";
 	const timesWorn = item?.timesWorn ?? 0;
 
+	// Build the preview content separately so we don't have a nested ternary
+	// in JSX (snapshot → image; otherwise 3D viewer; otherwise nothing).
+	let previewContent: ReactNode = null;
+	if (item?.snapshotImage) {
+		previewContent = <Image source={{ uri: item.snapshotImage }} style={styles.previewImage} resizeMode="contain" />;
+	} else if (item) {
+		previewContent = (
+			<View style={styles.viewerWrapper}>
+				<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
+			</View>
+		);
+	}
+
 	return (
 		<ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
 			<Pressable
@@ -52,13 +65,7 @@ export default function ClothingDetailScreen() {
 			</Pressable>
 
 			<View style={styles.previewBox}>
-				{item?.snapshotImage ? (
-					<Image source={{ uri: item.snapshotImage }} style={styles.previewImage} resizeMode="contain" />
-				) : item ? (
-					<View style={styles.viewerWrapper}>
-						<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
-					</View>
-				) : null}
+				{previewContent}
 
 				{item?.designImage ? (
 					<Image

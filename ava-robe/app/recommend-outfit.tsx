@@ -34,8 +34,8 @@ const EMPTY_AVATAR: SavedAvatar = {
 };
 
 const showAlert = (title: string, message?: string) => {
-	if (Platform.OS === "web" && typeof window !== "undefined") {
-		window.alert(message ? `${title}\n\n${message}` : title);
+	if (Platform.OS === "web" && globalThis.window !== undefined) {
+		globalThis.window.alert(message ? `${title}\n\n${message}` : title);
 	} else {
 		Alert.alert(title, message);
 	}
@@ -195,7 +195,7 @@ export default function RecommendOutfitScreen() {
 				a.download = `ava-robe-outfit-${Date.now()}.png`;
 				document.body.appendChild(a);
 				a.click();
-				document.body.removeChild(a);
+				a.remove();
 				showAlert("Downloaded!", "Your outfit was downloaded — upload it to Instagram as a story.");
 				return;
 			}
@@ -339,25 +339,40 @@ export default function RecommendOutfitScreen() {
 				{suggestions.length === 0 ? (
 					<Text style={styles.emptyText}>Not enough clothes to build an outfit. Save more items in your wardrobe first.</Text>
 				) : (
-					suggestions.map((suggestion, idx) => (
-						<Pressable key={idx} style={[styles.suggestCard, applying && styles.useButtonDisabled]} disabled={applying} onPress={() => handleUseOutfit(suggestion)}>
-							<Text style={styles.suggestLabel}>Outfit {idx + 1}</Text>
+					suggestions.map((suggestion, idx) => {
+						// Stable key derived from the suggestion's item ids so React
+						// doesn't reuse a card across different outfits.
+						const suggestionKey = suggestion.items.map((it) => it.id).join("|") || `slot-${idx}`;
 
-							<View style={styles.thumbsRow}>
-								{suggestion.items.map((item) => (
-									<View key={item.id} style={styles.thumb}>
-										{item.snapshotImage ? <Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" /> : <ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />}
-									</View>
-								))}
-							</View>
+						return (
+							<Pressable
+								key={suggestionKey}
+								style={[styles.suggestCard, applying && styles.useButtonDisabled]}
+								disabled={applying}
+								onPress={() => handleUseOutfit(suggestion)}
+							>
+								<Text style={styles.suggestLabel}>Outfit {idx + 1}</Text>
 
-							{suggestion.missing.length > 0 ? <Text style={styles.missingText}>Missing: {suggestion.missing.join(", ")}</Text> : null}
+								<View style={styles.thumbsRow}>
+									{suggestion.items.map((item) => (
+										<View key={item.id} style={styles.thumb}>
+											{item.snapshotImage ? (
+												<Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" />
+											) : (
+												<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
+											)}
+										</View>
+									))}
+								</View>
 
-							<View style={styles.useButton}>
-								<Text style={styles.useButtonText}>Use this outfit</Text>
-							</View>
-						</Pressable>
-					))
+								{suggestion.missing.length > 0 ? <Text style={styles.missingText}>Missing: {suggestion.missing.join(", ")}</Text> : null}
+
+								<View style={styles.useButton}>
+									<Text style={styles.useButtonText}>Use this outfit</Text>
+								</View>
+							</Pressable>
+						);
+					})
 				)}
 			</ScrollView>
 		</View>
