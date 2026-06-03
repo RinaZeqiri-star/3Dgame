@@ -15,6 +15,7 @@ type ClothingViewerProps = {
 	category?: string;
 	modelAsset?: any;
 	fabric?: FabricKind | null;
+	onLoaded?: () => void;
 };
 
 const FABRIC_PROPS: Record<FabricKind, { roughness: number; metalness: number }> = {
@@ -82,7 +83,7 @@ export type ClothingViewerHandle = {
 	takeSnapshot: () => Promise<string | null>;
 };
 
-const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ color, previewMode = false, clothingId = "tshirt", category, modelAsset, fabric }, ref) => {
+const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ color, previewMode = false, clothingId = "tshirt", category, modelAsset, fabric, onLoaded }, ref) => {
 	const requestRef = useRef<number | null>(null);
 	const modelRef = useRef<THREE.Object3D | null>(null);
 	const sceneRef = useRef<THREE.Scene | null>(null);
@@ -185,7 +186,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 					Skirts: { y: 0.65, size: 0.7 },
 					Shoes: { y: 0.18, size: 0.5 },
 					Accessories: { y: 1.3, size: 0.5 },
-					Hair: { y: 1.65, size: 0.4 },
+					Hair: { y: 1.66, size: 0.32 },
 				};
 
 				const ITEM_FRAMING: Record<string, { y: number; size: number }> = {
@@ -244,6 +245,9 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 
 				if (previewMode) {
 					renderOnce();
+					if (onLoaded) {
+						setTimeout(onLoaded, 50);
+					}
 					return;
 				}
 

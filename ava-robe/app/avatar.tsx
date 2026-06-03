@@ -9,9 +9,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 
 const SCREEN_BG = "#EBEBEB";
 
-const SKIN_COLORS = ["#F5D5BB", "#E0B59A", "#C68863", "#8D5524", "#5C3317"];
-const EYE_COLORS = ["#6F4E37", "#1C3A57", "#2E5E2E", "#B8956A", "#1C1C1C"];
-const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#D4B26A", "#8B3A2C"];
+const SKIN_COLORS = ["#FAE0D0", "#F5D5BB", "#EFC298", "#E0B59A", "#D49B7A", "#C68863", "#A86C45", "#8D5524", "#6F4321", "#5C3317", "#3D2114"];
+
+const EYE_COLORS = ["#6F4E37", "#3D2817", "#1C1C1C", "#1C3A57", "#5E81AC", "#88C0D0", "#2E5E2E", "#5BAA76", "#B8956A", "#7B5734", "#8B5A2B"];
+
+const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#9B6A3D", "#C19A6B", "#D8AB6F", "#D4B26A", "#F0DC9E", "#8B3A2C", "#7A7A7A", "#C0C0C0", "#E8A87C", "#A37BB7"];
 
 const HAIRSTYLES = getHairstyleList();
 const BODIES = getBodyList();
@@ -80,14 +82,18 @@ export default function AvatarScreen() {
 		}
 	};
 
-	const helperText =
-		activeTab === "skin"
-			? "Pick your skin tone"
-			: activeTab === "eyes"
-				? "Pick your eye color"
-				: activeTab === "hair"
-					? "Pick your hair color"
-					: "Pick your body type";
+	const helperText = activeTab === "skin" ? "Pick your skin tone" : activeTab === "eyes" ? "Pick your eye color" : activeTab === "hair" ? "Tap a hairstyle to put it on. Tap again to take it off." : "Pick your body type";
+
+	const handleHairCardPress = (id: string) => {
+		if (hasHair && hairstyleId === id) {
+			setHasHair(false);
+			return;
+		}
+		setHairstyleId(id);
+		setHasHair(true);
+	};
+
+	const showColorRow = activeTab !== "body";
 
 	return (
 		<View style={styles.screen}>
@@ -96,22 +102,8 @@ export default function AvatarScreen() {
 			</Pressable>
 
 			<View style={styles.viewerArea}>
-				{/* key remount on hairstyle or body change so the new GLBs actually load. */}
+				{}
 				<AvatarViewer key={`${hairstyleId}|${bodyId}`} skinColor={skinColor} eyeColor={eyeColor} hairColor={hairColor} hasHair={hasHair} hairstyleId={hairstyleId} bodyId={bodyId} backgroundColor={SCREEN_BG} />
-			</View>
-
-			<View style={styles.swatchColumn}>
-				{activeTab === "body" ? null : activeColors.map((color) => {
-					const isSelected = color === activeSelected;
-
-					return (
-						<Pressable
-							key={color}
-							onPress={() => handleColorPick(color)}
-							style={[styles.swatch, { backgroundColor: color }, isSelected && styles.selectedSwatch]}
-						/>
-					);
-				})}
 			</View>
 
 			<View style={styles.bottomPanel}>
@@ -140,25 +132,18 @@ export default function AvatarScreen() {
 				<Text style={styles.helperText}>{helperText}</Text>
 
 				{activeTab === "hair" ? (
-					<>
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hairstyleRow}>
-							{HAIRSTYLES.map((style) => {
-								const isSelected = hairstyleId === style.id;
-								return (
-									<Pressable key={style.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setHairstyleId(style.id)}>
-										<View style={styles.hairstylePreview} pointerEvents="none">
-											<ClothingViewer modelAsset={style.model} color={hairColor} category="Hair" previewMode />
-										</View>
-										<Text style={[styles.hairstyleText, isSelected && styles.hairstyleTextSelected]}>{style.name}</Text>
-									</Pressable>
-								);
-							})}
-						</ScrollView>
-
-						<Pressable style={styles.hairToggle} onPress={() => setHasHair(!hasHair)}>
-							<Text style={styles.hairToggleText}>{hasHair ? "Remove hair" : "Put on hair"}</Text>
-						</Pressable>
-					</>
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hairstyleRow}>
+						{HAIRSTYLES.map((style) => {
+							const isSelected = hasHair && hairstyleId === style.id;
+							return (
+								<Pressable key={style.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => handleHairCardPress(style.id)}>
+									<View style={styles.hairstylePreview} pointerEvents="none">
+										<ClothingViewer modelAsset={style.model} color={hairColor} category="Hair" previewMode />
+									</View>
+								</Pressable>
+							);
+						})}
+					</ScrollView>
 				) : null}
 
 				{activeTab === "body" ? (
@@ -168,7 +153,6 @@ export default function AvatarScreen() {
 							return (
 								<Pressable key={body.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setBodyId(body.id)}>
 									<View style={styles.hairstylePreview} pointerEvents="none">
-										{/* Body GLBs have face/eyes/etc., but the clothing filter strips face/eye/hair anyway and keeps _SKIN, which is what we want for a body silhouette preview. */}
 										<ClothingViewer modelAsset={body.model} color={skinColor} previewMode />
 									</View>
 									<Text style={[styles.hairstyleText, isSelected && styles.hairstyleTextSelected]}>{body.name}</Text>
@@ -176,6 +160,15 @@ export default function AvatarScreen() {
 							);
 						})}
 					</ScrollView>
+				) : null}
+
+				{showColorRow ? (
+					<View style={styles.swatchGrid}>
+						{activeColors.map((color) => {
+							const isSelected = color === activeSelected;
+							return <Pressable key={color} onPress={() => handleColorPick(color)} style={[styles.swatch, { backgroundColor: color }, isSelected && styles.selectedSwatch]} />;
+						})}
+					</View>
 				) : null}
 			</View>
 		</View>
@@ -208,22 +201,23 @@ const styles = StyleSheet.create({
 	},
 
 	viewerArea: {
-		height: "60%",
+		height: "55%",
 		paddingTop: 60,
 	},
 
-	swatchColumn: {
-		position: "absolute",
-		right: 24,
-		top: "26%",
-		gap: 16,
-		zIndex: 5,
+	swatchGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 12,
+		paddingHorizontal: 4,
+		paddingVertical: 14,
+		justifyContent: "center",
 	},
 
 	swatch: {
-		width: 38,
-		height: 38,
-		borderRadius: 6,
+		width: 36,
+		height: 36,
+		borderRadius: 18,
 		borderWidth: 1.5,
 		borderColor: "#1E1E1E",
 	},
@@ -231,7 +225,7 @@ const styles = StyleSheet.create({
 	selectedSwatch: {
 		borderColor: "#1E1E1E",
 		borderWidth: 3,
-		transform: [{ scale: 1.1 }],
+		transform: [{ scale: 1.15 }],
 	},
 
 	bottomPanel: {
@@ -281,32 +275,15 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 	},
 
-	hairToggle: {
-		alignSelf: "center",
-		marginTop: 16,
-		backgroundColor: "#1E1E1E",
-		borderRadius: 10,
-		paddingHorizontal: 28,
-		paddingVertical: 12,
-	},
-
-	hairToggleText: {
-		color: "#FFFFFF",
-		fontSize: 15,
-		fontWeight: "700",
-		letterSpacing: 0.5,
-	},
-
 	hairstyleRow: {
 		paddingHorizontal: 4,
-		paddingVertical: 16,
+		paddingVertical: 12,
 		gap: 12,
 	},
 
 	hairstyleCard: {
-		width: 110,
-		paddingVertical: 8,
-		paddingHorizontal: 8,
+		width: 120,
+		padding: 6,
 		borderRadius: 16,
 		borderWidth: 1.4,
 		borderColor: "#1E1E1E",
@@ -315,25 +292,26 @@ const styles = StyleSheet.create({
 	},
 
 	hairstyleCardSelected: {
-		backgroundColor: "#1E1E1E",
+		borderWidth: 3,
+		borderColor: "#FF6B9D",
 	},
 
 	hairstylePreview: {
-		width: 94,
-		height: 84,
+		width: 108,
+		height: 120,
 		borderRadius: 10,
 		overflow: "hidden",
-		marginBottom: 6,
 		backgroundColor: "#FFFFFF",
 	},
 
 	hairstyleText: {
-		fontSize: 14,
+		fontSize: 13,
 		fontWeight: "700",
 		color: "#1E1E1E",
+		marginTop: 6,
 	},
 
 	hairstyleTextSelected: {
-		color: "#FFFFFF",
+		color: "#FF6B9D",
 	},
 });
