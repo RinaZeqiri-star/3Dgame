@@ -4,7 +4,7 @@ import { EquippedItem, getOutfit } from "@/utils/outfitStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ImageBackground, ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
 
 const FALLBACK_BACKGROUND = require("../assets/images/backgrounds/download (21) 1.png");
 
@@ -91,7 +91,9 @@ export default function MyRoomScreen() {
 	const viewerKey = useMemo(() => `${avatar.hairstyleId ?? "default"}|${avatar.bodyId ?? "default"}|${outfit.map((it) => it.id).join("|")}`, [avatar.hairstyleId, avatar.bodyId, outfit]);
 
 	return (
-		<ImageBackground source={backgroundSource} style={styles.screen} resizeMode="cover">
+		<View style={styles.screen}>
+			<Image source={backgroundSource} style={styles.backgroundImage} resizeMode="cover" />
+
 			<Pressable onPress={() => router.push("/homepage")} style={styles.backButton}>
 				<Text style={styles.backArrow}>←</Text>
 			</Pressable>
@@ -103,8 +105,7 @@ export default function MyRoomScreen() {
 
 			<View style={styles.avatarStage} pointerEvents="none">
 				{hasSavedAvatar ? (
-					// poseMode "rest" = use the pose baked into the asset (we don't rotate bones at runtime).
-					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} bodyId={avatar.bodyId} backgroundColor={null} verticalFraming={0.08} poseMode="rest" outfit={outfit} />
+					<AvatarViewer key={viewerKey} skinColor={avatar.skinColor} eyeColor={avatar.eyeColor} hairColor={avatar.hairColor} hasHair={avatar.hasHair} hairstyleId={avatar.hairstyleId} bodyId={avatar.bodyId} backgroundColor={null} verticalFraming={0.22} poseMode="rest" outfit={outfit} />
 				) : (
 					<View style={styles.avatarPlaceholder}>
 						<Text style={styles.placeholderText}>Save your avatar to see it here</Text>
@@ -117,7 +118,7 @@ export default function MyRoomScreen() {
 					<View style={styles.ecoBarRow}>
 						<Text style={styles.ecoIcon}>🌿</Text>
 						<View style={styles.progressBarTrack}>
-							{/* TODO: bereken percentage op basis van outfit CO2 wanneer outfit feature af is */}
+							{}
 							<View style={[styles.progressBarFill, styles.progressFillCO2, { width: "0%" }]} />
 						</View>
 					</View>
@@ -126,7 +127,7 @@ export default function MyRoomScreen() {
 					<View style={[styles.ecoBarRow, styles.secondBarSpacing]}>
 						<Text style={styles.ecoIcon}>💧</Text>
 						<View style={styles.progressBarTrack}>
-							{/* TODO: bereken percentage op basis van outfit water usage wanneer outfit feature af is */}
+							{}
 							<View style={[styles.progressBarFill, styles.progressFillWater, { width: "0%" }]} />
 						</View>
 					</View>
@@ -143,13 +144,24 @@ export default function MyRoomScreen() {
 					</Pressable>
 				</View>
 			</View>
-		</ImageBackground>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	screen: {
 		flex: 1,
+		backgroundColor: "#FFFFFF",
+	},
+
+	backgroundImage: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		width: "100%",
+		height: "100%",
 	},
 
 	bottomSection: {

@@ -159,7 +159,7 @@ export default function StoreScreen() {
 				<Text style={styles.backArrow}>←</Text>
 			</Pressable>
 
-			<Text style={styles.title}>STORE SHOP</Text>
+			<Text style={styles.title}>STORE</Text>
 
 			<Text style={styles.description}>Earn coins by recycling clothes, posting outfits, rewearing items and completing eco challenges to unlock new aesthetic backgrounds.</Text>
 

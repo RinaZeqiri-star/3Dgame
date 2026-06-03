@@ -1,13 +1,10 @@
-import ClothingViewer from "@/components/ClothingViewer";
 import { getClothingById, SavedClothing, updateClothing } from "@/utils/clothingStorage";
 import { resetClothingDraft } from "@/utils/createClothingDraft";
 import { calculateSustainability } from "@/utils/sustainabilityCalc";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-
-const DESIGN_PREVIEW_RATIO = 110 / 280;
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function ClothingInfoScreen() {
 	const router = useRouter();
@@ -83,33 +80,6 @@ export default function ClothingInfoScreen() {
 	return (
 		<KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : undefined}>
 			<ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-				<View style={styles.previewBox}>
-					{item?.snapshotImage ? (
-						<Image source={{ uri: item.snapshotImage }} style={styles.previewImage} resizeMode="contain" />
-					) : (
-						<View style={styles.viewerWrapper}>
-							<ClothingViewer clothingId={item?.clothingId ?? "longsleve1"} color={item?.color ?? "#FFFFFF"} previewMode />
-						</View>
-					)}
-
-					{item?.designImage ? (
-						<Image
-							source={{ uri: item.designImage }}
-							style={[
-								styles.designImage,
-								{
-									transform: [
-										{ translateX: (item.designX ?? 0) * DESIGN_PREVIEW_RATIO },
-										{ translateY: (item.designY ?? 0) * DESIGN_PREVIEW_RATIO },
-										{ scale: item.designScale ?? 1 },
-									],
-								},
-							]}
-							resizeMode="contain"
-						/>
-					) : null}
-				</View>
-
 				<View style={styles.field}>
 					<Text style={styles.label}>What materials are listed on the label?</Text>
 					<TextInput style={styles.input} value={materials} onChangeText={setMaterials} placeholder="" />
@@ -145,9 +115,10 @@ const styles = StyleSheet.create({
 	},
 
 	scrollContent: {
+		flexGrow: 1,
+		justifyContent: "center",
 		paddingHorizontal: 28,
-		paddingTop: 50,
-		paddingBottom: 60,
+		paddingVertical: 40,
 	},
 
 	previewBox: {

@@ -10,7 +10,6 @@ export default function SignupScreen() {
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [instagram, setInstagram] = useState("");
 
 	const handleSignup = async () => {
 		if (!name || !email || !password) {
@@ -22,7 +21,7 @@ export default function SignupScreen() {
 			const response = await fetch(`${API_URL}/signup`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name, email, password, instagram }),
+				body: JSON.stringify({ name, email, password }),
 			});
 
 			const data = await response.json();
@@ -47,8 +46,6 @@ export default function SignupScreen() {
 				<TextInput style={styles.input} placeholder="Email" placeholderTextColor="#6E6E6E" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
 				<TextInput style={styles.input} placeholder="Password" placeholderTextColor="#6E6E6E" value={password} onChangeText={setPassword} secureTextEntry />
-
-				<TextInput style={styles.input} placeholder="Instagram (optional)" placeholderTextColor="#6E6E6E" value={instagram} onChangeText={setInstagram} />
 
 				<TouchableOpacity style={styles.button} onPress={handleSignup}>
 					<Text style={styles.buttonText}>Sign Up</Text>
