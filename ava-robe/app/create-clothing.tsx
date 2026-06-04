@@ -145,6 +145,12 @@ const colorPalettes: ColorPalette[] = [
 		accent: "#4B0082",
 		colors: ["#4B0082", "#008080", "#800020", "#FFD700", "#50C878", "#DC143C", "#9966CC", "#0F52BA"],
 	},
+	{
+		id: "neutrals",
+		name: "Neutrals",
+		accent: "#1E1E1E",
+		colors: ["#FFFFFF", "#F2F2F2", "#D9D9D9", "#A6A6A6", "#7A7A7A", "#4D4D4D", "#262626", "#000000"],
+	},
 ];
 
 const fabrics: Fabric[] = [

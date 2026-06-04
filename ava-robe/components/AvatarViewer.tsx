@@ -293,8 +293,11 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 					return;
 				}
 
+				const preservedMap = kind === "skin" ? (origMat?.map ?? null) : null;
+
 				child.material = new THREE.MeshStandardMaterial({
 					color: new THREE.Color(colorForKind(kind, currentSkin, currentEye, currentHair)),
+					map: preservedMap,
 					roughness: 0.65,
 					metalness: 0,
 				});
@@ -542,15 +545,16 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 										const sprite = new THREE.Sprite(spriteMat);
 
 										const cat = item.category;
-										let yPos = 1.32; // chest default
-										if (cat === "Pants") yPos = 0.7;
-										else if (cat === "Skirts") yPos = 0.85;
-										else if (cat === "Dresses") yPos = 1.1;
-										else if (cat === "Shoes") yPos = 0.1;
+										let yPos = 1.1;
+										if (cat === "Pants") yPos = 0.55;
+										else if (cat === "Skirts") yPos = 0.75;
+										else if (cat === "Dresses") yPos = 0.9;
+										else if (cat === "Shoes") yPos = 0.08;
 
-										const baseScale = 0.22 * (item.designScale ?? 1);
+										const bodyScale = body.scale ?? 1;
+										const baseScale = 0.18 * (item.designScale ?? 1);
 										sprite.scale.set(baseScale, baseScale, 1);
-										sprite.position.set(0, yPos, 0.16);
+										sprite.position.set(0, yPos * bodyScale, 0.16);
 										sprite.renderOrder = 999;
 										avatarGroup.add(sprite);
 									};

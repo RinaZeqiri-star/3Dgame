@@ -199,6 +199,7 @@ const styles = StyleSheet.create({
 	},
 
 	bottomSection: {
+		backgroundColor: "#FFFFFF",
 		paddingHorizontal: 24,
 		paddingTop: 12,
 		paddingBottom: 24,
