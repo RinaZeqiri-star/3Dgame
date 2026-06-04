@@ -161,10 +161,7 @@ export default function AvatarScreen() {
 						{BODIES.map((body) => {
 							const isSelected = bodyId === body.id;
 							return (
-								<Pressable key={body.id} style={[styles.hairstyleCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setBodyId(body.id)}>
-									<View style={styles.hairstylePreview} pointerEvents="none">
-										<ClothingViewer modelAsset={body.model} color={skinColor} previewMode />
-									</View>
+								<Pressable key={body.id} style={[styles.bodyCard, isSelected && styles.hairstyleCardSelected]} onPress={() => setBodyId(body.id)}>
 									<Text style={[styles.hairstyleText, isSelected && styles.hairstyleTextSelected]}>{body.name}</Text>
 								</Pressable>
 							);
@@ -181,7 +178,6 @@ export default function AvatarScreen() {
 					</View>
 				) : null}
 			</View>
-
 		</View>
 	);
 }
@@ -302,6 +298,17 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 
+	bodyCard: {
+		width: 120,
+		height: 130,
+		borderRadius: 16,
+		borderWidth: 1.4,
+		borderColor: "#1E1E1E",
+		backgroundColor: "#FFFFFF",
+		alignItems: "center",
+		justifyContent: "center",
+	},
+
 	hairstyleCardSelected: {
 		borderWidth: 3,
 		borderColor: "#1E1E1E",
@@ -314,7 +321,6 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 		backgroundColor: "#FFFFFF",
 	},
-
 
 	hairstyleText: {
 		fontSize: 13,

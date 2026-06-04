@@ -134,9 +134,6 @@ function rankArmBone(name: string): number {
 const HEELS_CLOTHING_IDS = new Set(["heels", "heelboots"]);
 const HEEL_TILT_RAD = 0.5;
 
-const TALL_BOOTS_CLOTHING_IDS = new Set(["longboots", "over-knee-boots"]);
-const FOOT_HIDE_SCALE = 0.05;
-
 const SHOE_Y_SCALE = 1.25;
 
 function sideForFootBone(boneName: string): Side {
@@ -151,6 +148,21 @@ function sideForFootBone(boneName: string): Side {
 	if (isRight && !isLeft) return "right";
 	return null;
 }
+
+function sideForToeBone(boneName: string): Side {
+	const n = boneName.toLowerCase();
+
+	if (!/toe/.test(n)) return null;
+
+	const isLeft = /(left|(?:^|[._])l(?:$|[._])|\.l$)/.test(n);
+	const isRight = /(right|(?:^|[._])r(?:$|[._])|\.r$)/.test(n);
+
+	if (isLeft && !isRight) return "left";
+	if (isRight && !isLeft) return "right";
+	return null;
+}
+
+const TOE_HIDE_SCALE = 0.01;
 
 const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function AvatarViewer(
 	{ skinColor, eyeColor, hairColor, hasHair = false, hairstyleId, bodyId, backgroundColor = "#FFFFFF", verticalFraming = 0, poseMode = "rest", outfit = [], spin = false },
@@ -362,30 +374,36 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 			}
 
 			const hasHeels = outfit.some((item) => HEELS_CLOTHING_IDS.has(item.clothingId));
-			const hasTallBoots = outfit.some((item) => TALL_BOOTS_CLOTHING_IDS.has(item.clothingId));
 
-			if (hasHeels || hasTallBoots) {
+			const hasNonSandalShoes = outfit.some((item) => item.category === "Shoes" && item.clothingId !== "sandals");
+
+			if (hasHeels || hasNonSandalShoes) {
 				let leftFootBone: THREE.Object3D | null = null;
 				let rightFootBone: THREE.Object3D | null = null;
+				let leftToeBone: THREE.Object3D | null = null;
+				let rightToeBone: THREE.Object3D | null = null;
 
 				bodyGltf.scene.traverse((node: any) => {
 					if (!node.isBone) return;
-					const side = sideForFootBone(node.name);
-					if (side === "left") leftFootBone = node;
-					if (side === "right") rightFootBone = node;
+					const footSide = sideForFootBone(node.name);
+					if (footSide === "left") leftFootBone = node;
+					if (footSide === "right") rightFootBone = node;
+					const toeSide = sideForToeBone(node.name);
+					if (toeSide === "left") leftToeBone = node;
+					if (toeSide === "right") rightToeBone = node;
 				});
 
 				if (hasHeels) {
 					if (leftFootBone) (leftFootBone as THREE.Object3D).rotation.x = HEEL_TILT_RAD;
 					if (rightFootBone) (rightFootBone as THREE.Object3D).rotation.x = HEEL_TILT_RAD;
-					console.log("[AvatarViewer] heels — feet tilted");
 				}
 
-				if (hasTallBoots) {
-					if (leftFootBone) (leftFootBone as THREE.Object3D).scale.setScalar(FOOT_HIDE_SCALE);
-					if (rightFootBone) (rightFootBone as THREE.Object3D).scale.setScalar(FOOT_HIDE_SCALE);
-					console.log("[AvatarViewer] tall boots — body feet hidden");
+				if (hasNonSandalShoes) {
+					if (leftToeBone) (leftToeBone as THREE.Object3D).scale.setScalar(TOE_HIDE_SCALE);
+					if (rightToeBone) (rightToeBone as THREE.Object3D).scale.setScalar(TOE_HIDE_SCALE);
 				}
+
+				console.log("[AvatarViewer] shoes detected — hasHeels:", hasHeels, "hasNonSandalShoes:", hasNonSandalShoes);
 			}
 
 			const avatarGroup = new THREE.Group();
