@@ -340,27 +340,16 @@ export default function RecommendOutfitScreen() {
 					<Text style={styles.emptyText}>Not enough clothes to build an outfit. Save more items in your wardrobe first.</Text>
 				) : (
 					suggestions.map((suggestion, idx) => {
-						// Stable key derived from the suggestion's item ids so React
-						// doesn't reuse a card across different outfits.
 						const suggestionKey = suggestion.items.map((it) => it.id).join("|") || `slot-${idx}`;
 
 						return (
-							<Pressable
-								key={suggestionKey}
-								style={[styles.suggestCard, applying && styles.useButtonDisabled]}
-								disabled={applying}
-								onPress={() => handleUseOutfit(suggestion)}
-							>
+							<Pressable key={suggestionKey} style={[styles.suggestCard, applying && styles.useButtonDisabled]} disabled={applying} onPress={() => handleUseOutfit(suggestion)}>
 								<Text style={styles.suggestLabel}>Outfit {idx + 1}</Text>
 
 								<View style={styles.thumbsRow}>
 									{suggestion.items.map((item) => (
 										<View key={item.id} style={styles.thumb}>
-											{item.snapshotImage ? (
-												<Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" />
-											) : (
-												<ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />
-											)}
+											{item.snapshotImage ? <Image source={{ uri: item.snapshotImage }} style={styles.thumbImage} resizeMode="contain" /> : <ClothingViewer clothingId={item.clothingId} category={item.category} color={item.color} previewMode />}
 										</View>
 									))}
 								</View>
@@ -510,12 +499,13 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		gap: 10,
 		justifyContent: "center",
+		alignItems: "center",
 		marginBottom: 14,
 	},
 
 	thumb: {
 		width: 110,
-		height: 140,
+		height: 110,
 		borderWidth: 1.2,
 		borderColor: "#000000",
 		borderRadius: 8,
