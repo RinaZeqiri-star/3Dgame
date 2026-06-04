@@ -19,15 +19,15 @@ type ClothingViewerProps = {
 };
 
 const FABRIC_PROPS: Record<FabricKind, { roughness: number; metalness: number }> = {
-	cotton: { roughness: 0.95, metalness: 0.0 },
+	cotton: { roughness: 0.95, metalness: 0 },
 	silk: { roughness: 0.2, metalness: 0.15 },
 	velvet: { roughness: 0.85, metalness: 0.1 },
-	denim: { roughness: 0.8, metalness: 0.0 },
+	denim: { roughness: 0.8, metalness: 0 },
 };
 
 function fabricMaterialProps(fabric: FabricKind | null | undefined) {
 	if (fabric && FABRIC_PROPS[fabric]) return FABRIC_PROPS[fabric];
-	return { roughness: 0.7, metalness: 0.0 };
+	return { roughness: 0.7, metalness: 0 };
 }
 
 const FABRIC_TEXTURE_SIZE = 64;
@@ -73,9 +73,7 @@ function buildFabricTexture(fabric: FabricKind): THREE.DataTexture {
 
 function getFabricTexture(fabric: FabricKind | null | undefined): THREE.DataTexture | null {
 	if (!fabric) return null;
-	if (!fabricTextureCache[fabric]) {
-		fabricTextureCache[fabric] = buildFabricTexture(fabric);
-	}
+	fabricTextureCache[fabric] ??= buildFabricTexture(fabric);
 	return fabricTextureCache[fabric] ?? null;
 }
 
@@ -182,11 +180,11 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 					Sweaters: { y: 1.15, size: 0.8 },
 					Jackets: { y: 1.15, size: 0.8 },
 					Dresses: { y: 0.95, size: 1.3 },
-					Pants: { y: 0.5, size: 1.0 },
+					Pants: { y: 0.5, size: 1 },
 					Skirts: { y: 0.65, size: 0.8 },
 					Shoes: { y: 0.18, size: 0.55 },
 					Accessories: { y: 1.3, size: 0.55 },
-					Hair: { y: 1.66, size: 0.32 },
+					Hair: { y: 1.4, size: 1 },
 				};
 
 				const ITEM_FRAMING: Record<string, { y: number; size: number }> = {};
@@ -208,7 +206,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 				const itemFraming = (clothingId && ITEM_FRAMING[clothingId]) || null;
 				const framing = itemFraming || (category && CATEGORY_FRAMING[category]) || null;
 
-				const forceFraming = category === "Accessories";
+				const forceFraming = category === "Accessories" || category === "Hair";
 
 				const fovRad = (camera.fov * Math.PI) / 180;
 				const zoomFactor = previewMode ? 0.95 : 1.1;

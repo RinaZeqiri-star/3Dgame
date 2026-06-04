@@ -13,7 +13,7 @@ const SKIN_COLORS = ["#FAE0D0", "#F5D5BB", "#EFC298", "#E0B59A", "#D49B7A", "#C6
 
 const EYE_COLORS = ["#6F4E37", "#3D2817", "#1C1C1C", "#1C3A57", "#5E81AC", "#88C0D0", "#2E5E2E", "#5BAA76", "#B8956A", "#7B5734", "#8B5A2B"];
 
-const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#9B6A3D", "#C19A6B", "#D8AB6F", "#D4B26A", "#F0DC9E", "#8B3A2C", "#7A7A7A", "#C0C0C0", "#E8A87C", "#A37BB7"];
+const HAIR_COLORS = ["#1C1C1C", "#3B2820", "#6F4E37", "#9B6A3D", "#C19A6B", "#D8AB6F", "#D4B26A", "#F0DC9E", "#8B3A2C", "#7A7A7A", "#C0C0C0", "#E8A87C"];
 
 const HAIRSTYLES = getHairstyleList();
 const BODIES = getBodyList();
@@ -69,8 +69,15 @@ export default function AvatarScreen() {
 		}
 	};
 
-	const activeColors = activeTab === "skin" ? SKIN_COLORS : activeTab === "eyes" ? EYE_COLORS : HAIR_COLORS;
-	const activeSelected = activeTab === "skin" ? skinColor : activeTab === "eyes" ? eyeColor : hairColor;
+	let activeColors = HAIR_COLORS;
+	let activeSelected = hairColor;
+	if (activeTab === "skin") {
+		activeColors = SKIN_COLORS;
+		activeSelected = skinColor;
+	} else if (activeTab === "eyes") {
+		activeColors = EYE_COLORS;
+		activeSelected = eyeColor;
+	}
 
 	const handleColorPick = (color: string) => {
 		if (activeTab === "skin") {
@@ -82,7 +89,10 @@ export default function AvatarScreen() {
 		}
 	};
 
-	const helperText = activeTab === "skin" ? "Pick your skin tone" : activeTab === "eyes" ? "Pick your eye color" : activeTab === "hair" ? "Tap a hairstyle to put it on. Tap again to take it off." : "Pick your body type";
+	let helperText = "Pick your body type";
+	if (activeTab === "skin") helperText = "Pick your skin tone";
+	else if (activeTab === "eyes") helperText = "Pick your eye color";
+	else if (activeTab === "hair") helperText = "Tap a hairstyle to put it on. Tap again to take it off.";
 
 	const handleHairCardPress = (id: string) => {
 		if (hasHair && hairstyleId === id) {
@@ -129,7 +139,7 @@ export default function AvatarScreen() {
 					</Pressable>
 				</View>
 
-				<Text style={styles.helperText}>{helperText}</Text>
+				{activeTab === "hair" ? null : <Text style={styles.helperText}>{helperText}</Text>}
 
 				{activeTab === "hair" ? (
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hairstyleRow}>
@@ -171,6 +181,7 @@ export default function AvatarScreen() {
 					</View>
 				) : null}
 			</View>
+
 		</View>
 	);
 }
@@ -293,7 +304,7 @@ const styles = StyleSheet.create({
 
 	hairstyleCardSelected: {
 		borderWidth: 3,
-		borderColor: "#FF6B9D",
+		borderColor: "#1E1E1E",
 	},
 
 	hairstylePreview: {
@@ -304,6 +315,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 
+
 	hairstyleText: {
 		fontSize: 13,
 		fontWeight: "700",
@@ -312,6 +324,6 @@ const styles = StyleSheet.create({
 	},
 
 	hairstyleTextSelected: {
-		color: "#FF6B9D",
+		color: "#1E1E1E",
 	},
 });
