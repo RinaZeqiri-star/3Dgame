@@ -2,6 +2,7 @@ export type BodyType = {
 	id: string;
 	name: string;
 	model: any;
+	scale?: number;
 };
 
 export const bodies: Record<string, BodyType> = {
@@ -10,9 +11,12 @@ export const bodies: Record<string, BodyType> = {
 		name: "Girl",
 		model: require("../assets/models/body.glb"),
 	},
-	// Add "man" entry here once the standard-size man VRM is exported and copied
-	// into assets/models/. The man should be the SAME size as the girl so the
-	// hair models still sit on top of the head correctly.
+	boy: {
+		id: "boy",
+		name: "Boy",
+		model: require("../assets/models/standard-boy-body.glb"),
+		scale: 0.85,
+	},
 };
 
 export function getBody(id: string | null | undefined): BodyType {

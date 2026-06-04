@@ -132,7 +132,7 @@ function rankArmBone(name: string): number {
 }
 
 const HEELS_CLOTHING_IDS = new Set(["heels", "heelboots"]);
-const HEEL_TILT_RAD = 0.5; // ~28°
+const HEEL_TILT_RAD = 0.5;
 
 const TALL_BOOTS_CLOTHING_IDS = new Set(["longboots", "over-knee-boots"]);
 const FOOT_HIDE_SCALE = 0.05;
@@ -234,6 +234,20 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 
 		try {
 			const [bodyGltf, hairGltf] = await Promise.all([loadAsync(bodyAsset.localUri || bodyAsset.uri), loadAsync(hairAsset.localUri || hairAsset.uri)]);
+
+			if (body.scale && body.scale !== 1) {
+				let bodyRootBone: THREE.Bone | null = null;
+				bodyGltf.scene.traverse((node: any) => {
+					if (!node.isBone) return;
+					const parentIsBone = node.parent && (node.parent as any).isBone;
+					if (!bodyRootBone && !parentIsBone) {
+						bodyRootBone = node;
+					}
+				});
+				if (bodyRootBone) {
+					(bodyRootBone as THREE.Bone).scale.setScalar(body.scale);
+				}
+			}
 
 			const currentSkin = skinColor || DEFAULT_SKIN;
 			const currentEye = eyeColor || DEFAULT_EYE;
