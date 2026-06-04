@@ -4,7 +4,6 @@ import { Renderer } from "expo-three";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { getAvatarModel } from "../utils/avatarModels";
 import { getBody } from "../utils/bodies";
 import { getClothingModel } from "../utils/clothingModels";
 import { getHairstyle } from "../utils/hairstyles";
@@ -71,7 +70,7 @@ function colorForKind(kind: MeshKind, skinColor: string, eyeColor: string, hairC
 		case "lash":
 			return LASH_COLOR;
 		case "brow":
-			return LASH_COLOR;
+			return hairColor;
 		case "lip":
 			return LIP_COLOR;
 		case "hair":
@@ -97,27 +96,29 @@ function disposeObject(node: THREE.Object3D | null) {
 const ARM_DROP_RAD = 0.2;
 const ELBOW_BEND_RAD = 1.1;
 
-function sideForUpperArmBone(boneName: string): "left" | "right" | null {
+type Side = "left" | "right" | null;
+
+function sideForUpperArmBone(boneName: string): Side {
 	const n = boneName.toLowerCase();
 
 	if (/forearm|lowerarm|lower_arm|hand|finger|thumb/.test(n)) return null;
-	if (!/upperarm|upper_arm|(^|[._])arm($|[._])|shoulder|shldr/.test(n)) return null;
+	if (!/(upperarm|upper_arm|(?:^|[._])arm(?:$|[._])|shoulder|shldr)/.test(n)) return null;
 
-	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
-	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+	const isLeft = /(left|(?:^|[._])l(?:$|[._])|\.l$)/.test(n);
+	const isRight = /(right|(?:^|[._])r(?:$|[._])|\.r$)/.test(n);
 
 	if (isLeft && !isRight) return "left";
 	if (isRight && !isLeft) return "right";
 	return null;
 }
 
-function sideForLowerArmBone(boneName: string): "left" | "right" | null {
+function sideForLowerArmBone(boneName: string): Side {
 	const n = boneName.toLowerCase();
 
 	if (!/lowerarm|lower_arm|forearm/.test(n)) return null;
 
-	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
-	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+	const isLeft = /(left|(?:^|[._])l(?:$|[._])|\.l$)/.test(n);
+	const isRight = /(right|(?:^|[._])r(?:$|[._])|\.r$)/.test(n);
 
 	if (isLeft && !isRight) return "left";
 	if (isRight && !isLeft) return "right";
@@ -136,13 +137,15 @@ const HEEL_TILT_RAD = 0.5; // ~28°
 const TALL_BOOTS_CLOTHING_IDS = new Set(["longboots", "over-knee-boots"]);
 const FOOT_HIDE_SCALE = 0.05;
 
-function sideForFootBone(boneName: string): "left" | "right" | null {
+const SHOE_Y_SCALE = 1.25;
+
+function sideForFootBone(boneName: string): Side {
 	const n = boneName.toLowerCase();
 
 	if (!/foot/.test(n) || /toe/.test(n)) return null;
 
-	const isLeft = /left|(^|[._])l($|[._])|\.l$/.test(n);
-	const isRight = /right|(^|[._])r($|[._])|\.r$/.test(n);
+	const isLeft = /(left|(?:^|[._])l(?:$|[._])|\.l$)/.test(n);
+	const isRight = /(right|(?:^|[._])r(?:$|[._])|\.r$)/.test(n);
 
 	if (isLeft && !isRight) return "left";
 	if (isRight && !isLeft) return "right";
@@ -196,8 +199,8 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 		glRef.current = gl;
 
 		const scene = new THREE.Scene();
-		if (!isTransparent) {
-			scene.background = new THREE.Color(backgroundColor as string);
+		if (!isTransparent && backgroundColor) {
+			scene.background = new THREE.Color(backgroundColor);
 		}
 		sceneRef.current = scene;
 
@@ -208,8 +211,8 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 		renderer.setSize(width, height);
 		if (isTransparent) {
 			renderer.setClearColor(0x000000, 0);
-		} else {
-			renderer.setClearColor(backgroundColor as string, 1);
+		} else if (backgroundColor) {
+			renderer.setClearColor(backgroundColor, 1);
 		}
 		rendererRef.current = renderer;
 
@@ -251,7 +254,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 				collectedNames.push(`mesh="${meshName}" mat="${matName}" map="${mapName}" -> ${kind}`);
 				meshKindsRef.current.set(child.uuid, kind);
 
-				if (kind === "lash" || kind === "brow") {
+				if (kind === "lash") {
 					return;
 				}
 
@@ -259,7 +262,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 					child.material = new THREE.MeshStandardMaterial({
 						color: new THREE.Color(UNDERWEAR_COLOR),
 						roughness: 0.6,
-						metalness: 0.0,
+						metalness: 0,
 					});
 					return;
 				}
@@ -267,7 +270,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 				child.material = new THREE.MeshStandardMaterial({
 					color: new THREE.Color(colorForKind(kind, currentSkin, currentEye, currentHair)),
 					roughness: 0.65,
-					metalness: 0.0,
+					metalness: 0,
 				});
 			});
 
@@ -287,7 +290,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 				child.material = new THREE.MeshStandardMaterial({
 					color: new THREE.Color(currentHair),
 					roughness: 0.65,
-					metalness: 0.0,
+					metalness: 0,
 				});
 			});
 
@@ -325,10 +328,8 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 						if (!leftArmBone || rankArmBone(node.name) > rankArmBone(leftArmBone.name)) {
 							leftArmBone = node;
 						}
-					} else {
-						if (!rightArmBone || rankArmBone(node.name) > rankArmBone(rightArmBone.name)) {
-							rightArmBone = node;
-						}
+					} else if (!rightArmBone || rankArmBone(node.name) > rankArmBone(rightArmBone.name)) {
+						rightArmBone = node;
 					}
 				});
 
@@ -458,7 +459,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 								node.material = new THREE.MeshStandardMaterial({
 									color: new THREE.Color(colorHex),
 									roughness: 0.7,
-									metalness: 0.0,
+									metalness: 0,
 								});
 
 								meshCount += 1;
@@ -494,7 +495,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 							avatarGroup.add(clothingGltf.scene);
 							console.log("[AvatarViewer] loaded clothing", item.clothingId, "meshes:", meshCount, "skipped body parts:", skippedBodyParts, "skinned-bones rebound:", reboundCount);
 
-							if (item.designImage && typeof globalThis !== "undefined" && typeof (globalThis as any).Image !== "undefined") {
+							if (item.designImage && (globalThis as any).Image !== undefined) {
 								try {
 									const img = new (globalThis as any).Image();
 									img.crossOrigin = "anonymous";
@@ -571,7 +572,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 				if (!child.isMesh || !child.material) return;
 
 				const kind = meshKindsRef.current.get(child.uuid) ?? classifyByName(child.name || "");
-				if (kind === "underwear" || kind === "lash" || kind === "brow") return;
+				if (kind === "underwear" || kind === "lash") return;
 
 				child.material.color = new THREE.Color(colorForKind(kind, currentSkin, currentEye, currentHair));
 				child.material.needsUpdate = true;
