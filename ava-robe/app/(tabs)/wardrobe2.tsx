@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
 
 	savedItem: {
 		width: "50%",
-		height: 150,
+		aspectRatio: 1,
 		borderRightWidth: 1.2,
 		borderBottomWidth: 1.2,
 		borderColor: "#000000",

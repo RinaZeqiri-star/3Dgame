@@ -112,8 +112,6 @@ const clothingItems: ClothingItem[] = [
 	{ id: "little-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "pink-tie", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 	{ id: "necklace", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
-	{ id: "ribbon", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
-	{ id: "longsocks", category: "Accessories", preview: require("../assets/images/clothes/blouse3.png"), model: null },
 ];
 
 const colorPalettes: ColorPalette[] = [
@@ -306,7 +304,7 @@ export default function CreateClothingScreen() {
 				<View style={styles.tabContent}>
 					{activeTab === "Clothes" && (
 						<>
-							<View style={styles.pillRow}>
+							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
 								{categories.map((cat) => {
 									const isActive = selectedCategory === cat;
 
@@ -323,7 +321,7 @@ export default function CreateClothingScreen() {
 										</Pressable>
 									);
 								})}
-							</View>
+							</ScrollView>
 
 							<ScrollView contentContainerStyle={styles.grid}>
 								{filteredItems.map((item) => {
@@ -524,9 +522,10 @@ const styles = StyleSheet.create({
 
 	pillRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 6,
-		paddingBottom: 10,
+		gap: 8,
+		paddingTop: 12,
+		paddingBottom: 14,
+		paddingRight: 18,
 		alignItems: "center",
 	},
 
@@ -566,10 +565,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		overflow: "hidden",
+		borderWidth: 2.5,
+		borderColor: "transparent",
 	},
 
 	selectedCard: {
-		borderWidth: 2.5,
 		borderColor: "#1E1E1E",
 	},
 

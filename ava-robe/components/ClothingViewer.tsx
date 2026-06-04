@@ -178,21 +178,18 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 				model.updateMatrixWorld(true);
 
 				const CATEGORY_FRAMING: Record<string, { y: number; size: number }> = {
-					"T-shirt": { y: 1.22, size: 0.55 },
-					Sweaters: { y: 1.18, size: 0.65 },
-					Jackets: { y: 1.18, size: 0.65 },
-					Dresses: { y: 0.95, size: 1.2 },
-					Pants: { y: 0.5, size: 0.95 },
-					Skirts: { y: 0.65, size: 0.7 },
-					Shoes: { y: 0.18, size: 0.5 },
-					Accessories: { y: 1.3, size: 0.5 },
+					"T-shirt": { y: 1.2, size: 0.7 },
+					Sweaters: { y: 1.15, size: 0.8 },
+					Jackets: { y: 1.15, size: 0.8 },
+					Dresses: { y: 0.95, size: 1.3 },
+					Pants: { y: 0.5, size: 1.0 },
+					Skirts: { y: 0.65, size: 0.8 },
+					Shoes: { y: 0.18, size: 0.55 },
+					Accessories: { y: 1.3, size: 0.55 },
 					Hair: { y: 1.66, size: 0.32 },
 				};
 
-				const ITEM_FRAMING: Record<string, { y: number; size: number }> = {
-					longsocks: { y: 0.4, size: 0.85 },
-					ribbon: { y: 1.65, size: 0.35 },
-				};
+				const ITEM_FRAMING: Record<string, { y: number; size: number }> = {};
 
 				const box = new THREE.Box3();
 				model.traverse((child: any) => {
