@@ -85,6 +85,8 @@ const clothingItems: ClothingItem[] = [
 	{ id: "zipup", category: "Sweaters", preview: require("../assets/images/clothes/jacekt1.png"), model: null },
 	{ id: "fleece-croptop", category: "Sweaters", preview: require("../assets/images/clothes/longsleve6.png"), model: null },
 
+	{ id: "cardigan-jacket", category: "Jackets", preview: require("../assets/images/clothes/jacekt1.png"), model: null },
+
 	{ id: "casual-dress", category: "Dresses", preview: require("../assets/images/clothes/dress1.png"), model: null },
 	{ id: "cute-dress", category: "Dresses", preview: require("../assets/images/clothes/dress11.png"), model: null },
 	{ id: "fancy-dress", category: "Dresses", preview: require("../assets/images/clothes/dress12.png"), model: null },
@@ -160,7 +162,7 @@ const fabrics: Fabric[] = [
 	{ id: "denim", name: "Denim", color: "#4169E1" },
 ];
 
-const tabs = ["Clothes", "Colors", "Design", "Fabric"];
+const tabs = ["Clothes", "Colors", "Add Design", "Fabric"];
 
 export default function CreateClothingScreen() {
 	const router = useRouter();
@@ -263,7 +265,7 @@ export default function CreateClothingScreen() {
 	};
 
 	const handleTabPress = (tab: string) => {
-		if (tab === "Design") {
+		if (tab === "Add Design") {
 			router.push("/wardrobe");
 			return;
 		}

@@ -8,11 +8,9 @@ const run = async () => {
 		await mongoose.connect(process.env.MONGO_URI);
 		console.log("MongoDB connected");
 
-		const result = await RecyclePost.deleteMany({
-			mediaUris: { $elemMatch: { $regex: "^https?://" } },
-		});
+		const result = await RecyclePost.deleteMany({});
 
-		console.log(`Deleted ${result.deletedCount} recycle posts with absolute media URLs`);
+		console.log(`Deleted ${result.deletedCount} recycle posts`);
 	} catch (err) {
 		console.log("Cleanup failed:", err);
 	} finally {

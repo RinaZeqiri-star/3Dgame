@@ -25,6 +25,9 @@ export const clothingModels: Record<string, any> = {
 	zipup: require("../assets/models/zipup.glb"),
 	"fleece-croptop": require("../assets/models/fleece-croptop.glb"),
 
+	// Jackets
+	"cardigan-jacket": require("../assets/models/cardigan.glb"),
+
 	// Dresses
 	"casual-dress": require("../assets/models/casual-dress.glb"),
 	"cute-dress": require("../assets/models/cute-dress.glb"),
