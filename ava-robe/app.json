@@ -39,7 +39,14 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Ava-Robe to access your photos so you can add designs and recycle posts.",
+          "cameraPermission": "Allow Ava-Robe to use your camera to capture designs."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -3,6 +3,7 @@ import ClothingViewer from "@/components/ClothingViewer";
 import { getSavedClothes, incrementTimesWorn, SavedClothing } from "@/utils/clothingStorage";
 import { EquippedItem, setOutfit } from "@/utils/outfitStorage";
 import { clothingToEquipped, generateOutfitSuggestions, OutfitSuggestion } from "@/utils/outfitRecommendations";
+import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as MediaLibrary from "expo-media-library";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -283,7 +284,7 @@ export default function RecommendOutfitScreen() {
 
 				{coinsEarned > 0 ? (
 					<View style={styles.coinBadge}>
-						<Text style={styles.coinBadgeIcon}>🪙</Text>
+						<FontAwesome5 name="coins" size={18} color="#D4A017" style={styles.coinBadgeIcon} />
 						<Text style={styles.coinBadgeText}>+{coinsEarned}</Text>
 					</View>
 				) : null}
@@ -575,7 +576,6 @@ const styles = StyleSheet.create({
 	},
 
 	coinBadgeIcon: {
-		fontSize: 18,
 		marginRight: 6,
 	},
 

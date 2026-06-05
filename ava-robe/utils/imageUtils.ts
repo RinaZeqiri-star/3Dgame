@@ -1,6 +1,42 @@
+import { File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
 
 type ImageFormat = "png" | "jpeg";
+
+export async function persistDataUriAsFile(uri: string | null | undefined, prefix = "design"): Promise<string | null> {
+	if (!uri) return null;
+	if (Platform.OS === "web") return uri;
+	if (!uri.startsWith("data:")) return uri;
+
+	const match = uri.match(/^data:([^;]+);base64,(.*)$/);
+	if (!match) return uri;
+
+	const mimeType = match[1];
+	const base64 = match[2];
+	const ext = mimeType === "image/png" ? "png" : mimeType === "image/jpeg" ? "jpg" : "bin";
+
+	try {
+		const atob = (globalThis as any).atob;
+		if (typeof atob !== "function") {
+			console.log("[persistDataUriAsFile] atob unavailable, returning data URI as-is");
+			return uri;
+		}
+		const binary = atob(base64);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i < binary.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+
+		const file = new File(Paths.cache, `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}.${ext}`);
+		if (file.exists) file.delete();
+		file.create();
+		file.write(bytes);
+		return file.uri;
+	} catch (err) {
+		console.log("[persistDataUriAsFile] write failed, returning data URI:", err);
+		return uri;
+	}
+}
 
 async function blobUriToDataUri(blobUri: string): Promise<string> {
 	const response = await fetch(blobUri);

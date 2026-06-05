@@ -1,8 +1,9 @@
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { setSavedDesignImage } from "../../utils/designStore";
+import { persistDataUriAsFile } from "../../utils/imageUtils";
 
 const API_URL = "http://192.168.129.8:5000";
 
@@ -14,23 +15,28 @@ export default function WardrobeScreen() {
 	const [isLoading, setIsLoading] = useState(false);
 
 	const pickDesignImage = async () => {
-		const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		try {
+			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-		if (!permissionResult.granted) {
-			Alert.alert("Permission needed", "We need access to your photos.");
-			return;
-		}
+			if (!permissionResult.granted) {
+				Alert.alert("Permission needed", "We need access to your photos to choose a design.");
+				return;
+			}
 
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ["images"],
-			allowsEditing: true,
-			aspect: [1, 1],
-			quality: 1,
-		});
+			const result = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ["images"],
+				allowsEditing: true,
+				aspect: [1, 1],
+				quality: 1,
+			});
 
-		if (!result.canceled) {
-			setDesignImage(result.assets[0].uri);
-			setCleanedImage(null);
+			if (!result.canceled) {
+				setDesignImage(result.assets[0].uri);
+				setCleanedImage(null);
+			}
+		} catch (error) {
+			console.log("[wardrobe] pickDesignImage error:", error);
+			Alert.alert("Error", "Could not open the photo library.");
 		}
 	};
 
@@ -43,11 +49,23 @@ export default function WardrobeScreen() {
 		try {
 			setIsLoading(true);
 
-			const imageResponse = await fetch(designImage);
-			const imageBlob = await imageResponse.blob();
-
 			const formData = new FormData();
-			formData.append("image", imageBlob, "design.jpg");
+
+			if (Platform.OS === "web") {
+				const imageResponse = await fetch(designImage);
+				const imageBlob = await imageResponse.blob();
+				formData.append("image", imageBlob, "design.jpg");
+			} else {
+				const lastDot = designImage.lastIndexOf(".");
+				const ext = lastDot >= 0 ? designImage.slice(lastDot + 1).toLowerCase().split("?")[0] : "jpg";
+				const mime = ext === "png" ? "image/png" : "image/jpeg";
+
+				formData.append("image", {
+					uri: designImage,
+					name: `design.${ext}`,
+					type: mime,
+				} as any);
+			}
 
 			const response = await fetch(`${API_URL}/remove-background`, {
 				method: "POST",
@@ -58,18 +76,36 @@ export default function WardrobeScreen() {
 				throw new Error("Failed to remove background");
 			}
 
-			const resultBlob = await response.blob();
-			const reader = new FileReader();
+			let dataUri: string | null = null;
 
-			reader.onloadend = () => {
-				const result = reader.result as string;
-				setDesignImage(result);
-				setCleanedImage(result);
-			};
+			if (Platform.OS === "web") {
+				const resultBlob = await response.blob();
+				dataUri = await new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result as string);
+					reader.onerror = reject;
+					reader.readAsDataURL(resultBlob);
+				});
+			} else {
+				const arrayBuffer = await response.arrayBuffer();
+				const bytes = new Uint8Array(arrayBuffer);
+				const chunkSize = 0x8000;
+				let binary = "";
+				for (let i = 0; i < bytes.length; i += chunkSize) {
+					binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)) as any);
+				}
+				const base64 = (globalThis as any).btoa(binary);
+				const contentType = response.headers.get("content-type") || "image/png";
+				dataUri = `data:${contentType};base64,${base64}`;
+			}
 
-			reader.readAsDataURL(resultBlob);
+			if (dataUri) {
+				const persisted = (await persistDataUriAsFile(dataUri, "design-cleaned")) ?? dataUri;
+				setDesignImage(persisted);
+				setCleanedImage(persisted);
+			}
 		} catch (error) {
-			console.log(error);
+			console.log("[wardrobe] removeBackground error:", error);
 			Alert.alert("Error", "Could not remove the background.");
 		} finally {
 			setIsLoading(false);

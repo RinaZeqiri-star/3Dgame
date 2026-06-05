@@ -1,12 +1,14 @@
 import { Asset } from "expo-asset";
 import { GLView } from "expo-gl";
-import { Renderer } from "expo-three";
+import { Renderer, TextureLoader as ExpoTextureLoader } from "expo-three";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { Platform } from "react-native";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getBody } from "../utils/bodies";
 import { getClothingModel } from "../utils/clothingModels";
 import { getHairstyle } from "../utils/hairstyles";
+import { patchExpoGl } from "../utils/patchExpoGl";
+import { createSafeGltfLoader } from "../utils/safeGltfLoader";
 
 import type { EquippedItem } from "../utils/outfitStorage";
 
@@ -207,6 +209,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 	}));
 
 	const onContextCreate = async (gl: any) => {
+		patchExpoGl(gl);
 		const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
 		glRef.current = gl;
 
@@ -241,7 +244,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 		const hairAsset = Asset.fromModule(hairstyle.model);
 		await Promise.all([bodyAsset.downloadAsync(), hairAsset.downloadAsync()]);
 
-		const loader = new GLTFLoader();
+		const loader = createSafeGltfLoader();
 		const loadAsync = (uri: string): Promise<any> => new Promise((resolve, reject) => loader.load(uri, resolve, undefined, reject));
 
 		try {
@@ -303,18 +306,30 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 				});
 			});
 
+			const hairMeshDebug: string[] = [];
+			const hairMeshesAll: any[] = [];
+			const hairMeshesKept: any[] = [];
 			const hairMeshesToRemove: any[] = [];
+
 			hairGltf.scene.traverse((child: any) => {
 				if (!child.isMesh) return;
+				hairMeshesAll.push(child);
+
+				const meshName = child.name || "";
+				const matName = (Array.isArray(child.material) ? child.material[0]?.name : child.material?.name) || "";
+				const lookup = `${meshName}|${matName}`.toLowerCase();
 
 				if (hairstyle.needsFilter) {
-					const matName = (Array.isArray(child.material) ? child.material[0]?.name : child.material?.name) || "";
-					const isHairMesh = /_HAIR(\s|$)/i.test(matName);
+					const isHairMesh = /hair/.test(lookup);
 					if (!isHairMesh) {
 						hairMeshesToRemove.push(child);
+						hairMeshDebug.push(`SKIP mesh="${meshName}" mat="${matName}"`);
 						return;
 					}
 				}
+
+				hairMeshesKept.push(child);
+				hairMeshDebug.push(`KEEP mesh="${meshName}" mat="${matName}"`);
 
 				child.material = new THREE.MeshStandardMaterial({
 					color: new THREE.Color(currentHair),
@@ -322,9 +337,24 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 					metalness: 0,
 				});
 			});
+			if (hairstyle.needsFilter && hairMeshesKept.length === 0 && hairMeshesAll.length > 0) {
+				console.log("[AvatarViewer] hair filter would remove every mesh — disabling filter for", hairstyle.id);
+				for (const child of hairMeshesAll) {
+					child.material = new THREE.MeshStandardMaterial({
+						color: new THREE.Color(currentHair),
+						roughness: 0.65,
+						metalness: 0,
+					});
+				}
+			} else {
+				for (const m of hairMeshesToRemove) {
+					m.parent?.remove(m);
+				}
+			}
 
-			for (const m of hairMeshesToRemove) {
-				m.parent?.remove(m);
+			console.log(`[AvatarViewer] hairstyle=${hairstyle.id} needsFilter=${hairstyle.needsFilter} totalMeshes=${hairMeshesAll.length} kept=${hairMeshesKept.length}`);
+			if (hairMeshDebug.length > 0) {
+				console.log("[AvatarViewer] hair mesh decisions:\n" + hairMeshDebug.join("\n"));
 			}
 
 			console.log("[AvatarViewer] body.glb meshes:\n" + collectedNames.join("\n"));
@@ -415,6 +445,7 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 			scene.add(avatarGroup);
 			const hasHairItem = outfit.some((item) => item.category === "Hair");
 			hairGltf.scene.visible = hasHair && !hasHairItem;
+			console.log(`[AvatarViewer] hair visibility — hasHair=${hasHair} hasHairItem=${hasHairItem} -> visible=${hairGltf.scene.visible}`);
 
 			bodyRef.current = bodyGltf.scene;
 			hairRef.current = hairGltf.scene;
@@ -530,12 +561,10 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 							avatarGroup.add(clothingGltf.scene);
 							console.log("[AvatarViewer] loaded clothing", item.clothingId, "meshes:", meshCount, "skipped body parts:", skippedBodyParts, "skinned-bones rebound:", reboundCount);
 
-							if (item.designImage && (globalThis as any).Image !== undefined) {
+							if (item.designImage) {
 								try {
-									const img = new (globalThis as any).Image();
-									img.crossOrigin = "anonymous";
-									img.onload = () => {
-										const tex = new THREE.Texture(img);
+									const designLoader = Platform.OS === "web" ? new THREE.TextureLoader() : new ExpoTextureLoader();
+									const onDesignLoaded = (tex: THREE.Texture) => {
 										tex.needsUpdate = true;
 										const spriteMat = new THREE.SpriteMaterial({
 											map: tex,
@@ -557,11 +586,11 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 										sprite.position.set(0, yPos * bodyScale, 0.16);
 										sprite.renderOrder = 999;
 										avatarGroup.add(sprite);
+										console.log("[AvatarViewer] design sprite added for", item.clothingId);
 									};
-									img.onerror = (err: any) => {
+									designLoader.load(item.designImage, onDesignLoaded, undefined, (err: unknown) => {
 										console.log("[AvatarViewer] design image failed to load:", err);
-									};
-									img.src = item.designImage;
+									});
 								} catch (designErr) {
 									console.log("[AvatarViewer] design sprite error:", designErr);
 								}

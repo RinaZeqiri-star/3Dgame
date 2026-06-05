@@ -3,8 +3,9 @@ import { GLView } from "expo-gl";
 import { Renderer } from "expo-three";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getClothingModel } from "../utils/clothingModels";
+import { patchExpoGl } from "../utils/patchExpoGl";
+import { createSafeGltfLoader } from "../utils/safeGltfLoader";
 
 export type FabricKind = "cotton" | "silk" | "velvet" | "denim";
 
@@ -109,6 +110,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 	}));
 
 	const onContextCreate = async (gl: any) => {
+		patchExpoGl(gl);
 		const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
 		glRef.current = gl;
 
@@ -134,7 +136,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 		const asset = Asset.fromModule(modelAsset ?? getClothingModel(clothingId));
 		await asset.downloadAsync();
 
-		const loader = new GLTFLoader();
+		const loader = createSafeGltfLoader();
 
 		loader.load(
 			asset.localUri || asset.uri,

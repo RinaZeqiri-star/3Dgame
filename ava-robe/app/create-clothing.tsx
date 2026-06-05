@@ -286,7 +286,9 @@ export default function CreateClothingScreen() {
 
 					{designImage ? (
 						<GestureDetector gesture={composedGesture}>
-							<Animated.Image source={{ uri: designImage }} style={[styles.designOverlay, animatedDesignStyle]} />
+							<Animated.View style={styles.designGestureArea} pointerEvents="auto">
+								<Animated.Image source={{ uri: designImage }} style={[styles.designOverlay, animatedDesignStyle]} />
+							</Animated.View>
 						</GestureDetector>
 					) : null}
 				</View>
@@ -469,15 +471,21 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 	},
 
-	designOverlay: {
+	designGestureArea: {
 		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		alignItems: "center",
+		justifyContent: "center",
+		zIndex: 20,
+	},
+
+	designOverlay: {
 		width: 75,
 		height: 75,
 		resizeMode: "contain",
-		top: 125,
-		left: "50%",
-		marginLeft: -37.5,
-		zIndex: 20,
 	},
 
 	panel: {

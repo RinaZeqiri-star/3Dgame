@@ -2,6 +2,7 @@ import AvatarViewer from "@/components/AvatarViewer";
 import { getBackgroundById } from "@/utils/backgrounds";
 import { getSavedClothes } from "@/utils/clothingStorage";
 import { EquippedItem, getOutfit } from "@/utils/outfitStorage";
+import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -121,7 +122,7 @@ export default function MyRoomScreen() {
 			</Pressable>
 
 			<View style={styles.coinBalance}>
-				<Text style={styles.coinIcon}>🪙</Text>
+				<FontAwesome5 name="coins" size={18} color="#D4A017" style={styles.coinIcon} />
 				<Text style={styles.coinText}>{coins}</Text>
 			</View>
 
@@ -234,7 +235,6 @@ const styles = StyleSheet.create({
 	},
 
 	coinIcon: {
-		fontSize: 18,
 		marginRight: 6,
 	},
 

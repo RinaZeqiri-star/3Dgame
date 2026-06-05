@@ -30,20 +30,32 @@ export default function AddPostScreen() {
 	);
 
 	const pickMedia = async () => {
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ["images", "videos"],
-			allowsMultipleSelection: true,
-			selectionLimit: 20,
-			quality: 1,
-		});
+		try {
+			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-		if (!result.canceled) {
-			const selectedUris = result.assets.map((asset) => asset.uri);
+			if (!permissionResult.granted) {
+				Alert.alert("Permission needed", "We need access to your photos to add media.");
+				return;
+			}
 
-			setMediaUris((currentMedia) => {
-				const allMedia = [...currentMedia, ...selectedUris];
-				return allMedia.slice(0, 20);
+			const result = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ["images", "videos"],
+				allowsMultipleSelection: true,
+				selectionLimit: 20,
+				quality: 1,
 			});
+
+			if (!result.canceled) {
+				const selectedUris = result.assets.map((asset) => asset.uri);
+
+				setMediaUris((currentMedia) => {
+					const allMedia = [...currentMedia, ...selectedUris];
+					return allMedia.slice(0, 20);
+				});
+			}
+		} catch (error) {
+			console.log("[addpost] pickMedia error:", error);
+			Alert.alert("Error", "Could not open the photo library.");
 		}
 	};
 
@@ -52,10 +64,22 @@ export default function AddPostScreen() {
 
 		for (let index = 0; index < mediaUris.length; index++) {
 			const uri = mediaUris[index];
-			const fileResponse = await fetch(uri);
-			const blob = await fileResponse.blob();
 
-			formData.append("media", blob, `recycle-media-${index}.jpg`);
+			const lastDot = uri.lastIndexOf(".");
+			const ext = lastDot >= 0 ? uri.slice(lastDot + 1).toLowerCase().split("?")[0] : "jpg";
+			const mime = ext === "png" ? "image/png" : ext === "mp4" || ext === "mov" ? `video/${ext}` : "image/jpeg";
+
+			if (Platform.OS === "web") {
+				const fileResponse = await fetch(uri);
+				const blob = await fileResponse.blob();
+				formData.append("media", blob, `recycle-media-${index}.${ext}`);
+			} else {
+				formData.append("media", {
+					uri,
+					name: `recycle-media-${index}.${ext}`,
+					type: mime,
+				} as any);
+			}
 		}
 
 		const response = await fetch(`${API_URL}/upload-recycle-media`, {

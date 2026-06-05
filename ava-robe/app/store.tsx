@@ -1,4 +1,5 @@
 import { BACKGROUNDS } from "@/utils/backgrounds";
+import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -127,7 +128,7 @@ export default function StoreScreen() {
 		if (!isOwned) {
 			return (
 				<Pressable style={styles.priceButton} onPress={handleBuy} disabled={isProcessing}>
-					<Text style={styles.priceCoin}>🪙</Text>
+					<FontAwesome5 name="coins" size={20} color="#D4A017" style={styles.priceCoin} />
 					<Text style={styles.priceText}>{currentBg.price}</Text>
 				</Pressable>
 			);
@@ -151,7 +152,7 @@ export default function StoreScreen() {
 	return (
 		<View style={styles.container}>
 			<View style={styles.coinBalance}>
-				<Text style={styles.coinIcon}>🪙</Text>
+				<FontAwesome5 name="coins" size={24} color="#D4A017" style={styles.coinIcon} />
 				<Text style={styles.coinText}>{user?.coins ?? 0}</Text>
 			</View>
 
@@ -208,7 +209,6 @@ const styles = StyleSheet.create({
 	},
 
 	coinIcon: {
-		fontSize: 24,
 		marginRight: 8,
 	},
 
@@ -330,7 +330,6 @@ const styles = StyleSheet.create({
 	},
 
 	priceCoin: {
-		fontSize: 20,
 		marginRight: 8,
 	},
 
