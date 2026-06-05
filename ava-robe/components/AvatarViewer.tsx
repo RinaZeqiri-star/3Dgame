@@ -198,9 +198,19 @@ const AvatarViewer = forwardRef<AvatarViewerHandle, AvatarViewerProps>(function 
 			try {
 				rendererRef.current!.render(sceneRef.current!, cameraRef.current!);
 				const snapshot = await GLView.takeSnapshotAsync(glRef.current, { format: "png" });
-				const uri = typeof snapshot.uri === "string" ? snapshot.uri : (snapshot.uri as any)?._data?.uri;
-				console.log("[AvatarViewer] takeSnapshot success — uri starts with:", uri?.slice(0, 40));
-				return uri ?? null;
+				const rawUri: any = snapshot.uri;
+				let uri: string | null = null;
+				if (typeof rawUri === "string") {
+					uri = rawUri;
+				} else if (typeof Blob !== "undefined" && rawUri instanceof Blob) {
+					// Web: takeSnapshotAsync returns a Blob — turn it into an object URL we can download.
+					uri = URL.createObjectURL(rawUri);
+				} else if (rawUri?._data?.uri) {
+					// React Native Blob shape on some native builds.
+					uri = rawUri._data.uri;
+				}
+				console.log("[AvatarViewer] takeSnapshot success — uri starts with:", uri?.slice(0, 40), "rawUri type:", typeof rawUri, rawUri?.constructor?.name);
+				return uri;
 			} catch (error) {
 				console.log("[AvatarViewer] snapshot error:", error);
 				return null;
