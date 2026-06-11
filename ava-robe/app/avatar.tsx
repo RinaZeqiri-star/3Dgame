@@ -62,7 +62,7 @@ export default function AvatarScreen() {
 
 			await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
 
-			router.replace("/create-clothing");
+			router.replace("/my-room");
 		} catch (error) {
 			console.log("Save avatar error:", error);
 			Alert.alert("Error", "Could not save avatar");

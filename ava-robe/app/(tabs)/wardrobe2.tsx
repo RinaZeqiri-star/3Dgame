@@ -109,6 +109,7 @@ export default function Wardrobe2Screen() {
 
 						return (
 							<Pressable key={item.id} style={[styles.savedItem, isOutfitMode && equipped && styles.equippedItem]} onPress={() => handleItemPress(item)}>
+								<View style={[styles.colorLayer, { backgroundColor: item.color || "#D9D9D9" }]} />
 								{item.snapshotImage ? (
 									<Image source={{ uri: item.snapshotImage }} style={styles.viewerWrapper} resizeMode="contain" />
 								) : (

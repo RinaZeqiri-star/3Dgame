@@ -235,13 +235,21 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 					`[ClothingViewer] ${clothingId} cat=${category} | bboxCenter=(${bboxCenter.x.toFixed(2)},${bboxCenter.y.toFixed(2)},${bboxCenter.z.toFixed(2)}) bboxSize=(${bboxSize.x.toFixed(2)},${bboxSize.y.toFixed(2)},${bboxSize.z.toFixed(2)}) contaminated=${looksContaminated} | aim=(${aimX.toFixed(2)},${aimY.toFixed(2)},${aimZ.toFixed(2)}) targetSize=${targetSize.toFixed(2)} dist=${distance.toFixed(2)}`,
 				);
 
-				const renderOnce = () => {
-					renderer.render(scene, camera);
-					gl.endFrameEXP();
+				let loggedRenderError = false;
+				const safeRender = () => {
+					try {
+						renderer.render(scene, camera);
+						gl.endFrameEXP();
+					} catch (renderError) {
+						if (!loggedRenderError) {
+							loggedRenderError = true;
+							console.log("[ClothingViewer] render error (silencing further):", renderError);
+						}
+					}
 				};
 
 				if (previewMode) {
-					renderOnce();
+					safeRender();
 					if (onLoaded) {
 						setTimeout(onLoaded, 50);
 					}
@@ -250,8 +258,7 @@ const ClothingViewer = forwardRef<ClothingViewerHandle, ClothingViewerProps>(({ 
 
 				const animate = () => {
 					requestRef.current = requestAnimationFrame(animate);
-					renderer.render(scene, camera);
-					gl.endFrameEXP();
+					safeRender();
 				};
 
 				animate();

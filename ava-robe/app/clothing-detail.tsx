@@ -87,7 +87,7 @@ export default function ClothingDetailScreen() {
 			</View>
 
 			<View style={styles.card}>
-				<Text style={styles.cardLabel}>Brand:</Text>
+				<Text style={styles.cardLabel}>Made in:</Text>
 				<Text style={styles.cardValue}>{madeIn}</Text>
 			</View>
 

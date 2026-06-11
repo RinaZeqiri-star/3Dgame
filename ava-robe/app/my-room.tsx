@@ -137,7 +137,7 @@ export default function MyRoomScreen() {
 						hairstyleId={avatar.hairstyleId}
 						bodyId={avatar.bodyId}
 						backgroundColor={null}
-						verticalFraming={0.22}
+						verticalFraming={0.05}
 						poseMode="rest"
 						outfit={outfit}
 					/>
